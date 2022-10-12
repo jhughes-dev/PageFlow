@@ -1,18 +1,27 @@
 <script setup lang="ts">
-type props = {
-    aspect: string,
-    height: string,
-    margin: string,
-};
-withDefaults(defineProps<props>(), {
+
+interface PageFlowOptions {
+    aspect?: string;
+    height?: string;
+    margin?: string;
+}
+
+const props = withDefaults(defineProps<PageFlowOptions>(), {
     aspect: "8.5/11",
     height: "11in",
     margin: "1in",
 });
+
+const pageFlow = usePageFlow();
+const parent = ref(null);
+
+onMounted(() => {
+    pageFlow(parent.value, props);
+});
 </script>
 
 <template>
-    <div class="page">
+    <div ref="parent" class="page">
         <slot />
     </div>
 </template>
