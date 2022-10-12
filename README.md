@@ -1,3 +1,7 @@
+# Page Flow
+A typscript utility to break content across multiple fixed size "pages". Think of a print preview.
+This uses Nuxt3/Vue3 as an example to demonstrate the concept.
+
 # Nuxt 3 Minimal Starter
 
 Look at the [nuxt 3 documentation](https://v3.nuxtjs.org) to learn more.
