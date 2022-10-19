@@ -15,12 +15,15 @@ const pageFlow = usePageFlow();
 const source = ref(null);
 const dest = ref(null);
 
-onMounted(() => {
+const update = () => {
     console.log("Loaded");
     if (source.value && dest.value) {
+        dest.value.innerHTML = "";
         pageFlow(source.value, dest.value, props);
     }
-});
+};
+onMounted(update);
+onUpdated(update);
 </script>
 
 <template>
