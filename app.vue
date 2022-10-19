@@ -63,4 +63,10 @@ body {
   margin: 1rem;
   overflow-y: hidden;
 }
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
 </style>

@@ -43,24 +43,50 @@ const usePageFlow = () => ((source: HTMLElement, dest: HTMLElement, {aspect, hei
     for (let i = 0; i < children.length; ++i) {
 
         console.log(`loop ${i}`)
-        const node = children[i];
+        let node = children[i];
 
         blankPage.insertBefore(node, null);
         if (node.offsetHeight < remaining) {
             blankPage.removeChild(node);
             dest.insertBefore(node, null);
             remaining -= node.offsetHeight;
-            // } else if (false) {
-            //     // Need to split the node by text if possible.
-        } else {
-            let newPage = blankPage.cloneNode() as HTMLDivElement;
-            numPages++;
-            newPage.id = `page-flow-${numPages}`;
-            container.insertBefore(newPage, null);
-            dest = newPage;
-            dest.insertBefore(node, null);
-            remaining = innerHeight - node.offsetHeight;
+            continue;
         }
+
+        // Need to split the node by text if possible.
+        const child = node.firstChild
+
+        const relativeHeight = remaining / node.offsetHeight
+
+        blankPage.removeChild(node);
+
+        // This needs more work, but basically this is
+        // trying to split a paragraph across divs
+        if (child.nodeType === Node.TEXT_NODE) {
+            const content = child.textContent;
+            const idx = Math.floor(content.length * relativeHeight);
+            const lastSpace = content.lastIndexOf(' ', idx);
+
+            node.innerText = content.substring(0, lastSpace);
+            dest.insertBefore(node, null);
+            if (node.offsetHeight > remaining) {
+                //split more.
+            }
+            // or add more if there's more words to be added.
+
+            // want to check for orphans, i.e. numLines === 1
+            node = node.cloneNode() as HTMLElement;
+            node.innerText = content.substring(lastSpace);
+        }
+
+        let newPage = blankPage.cloneNode() as HTMLDivElement;
+        numPages++;
+        newPage.id = `page-flow-${numPages}`;
+        container.insertBefore(newPage, null);
+        dest = newPage;
+        dest.insertBefore(node, null);
+        remaining = innerHeight - node.offsetHeight;
+
     }
 
     document.body.removeChild(blankPage);
@@ -68,6 +94,7 @@ const usePageFlow = () => ((source: HTMLElement, dest: HTMLElement, {aspect, hei
 })
 
 export default usePageFlow;
+
 function getDimensions(blankPage: HTMLElement): {innerHeight: number, innerWidth: number} {
     let fauxPage = blankPage.cloneNode() as HTMLDivElement;
     fauxPage.id = "faux-page";
