@@ -16,7 +16,7 @@
         <div class="page-content">
             <PageFlow aspect="8.5/11" height="6in" margin="1in">
                 <p v-for="i in 20" :key="i">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                    {{i}}. Lorem ipsum dolor sit amet consectetur adipisicing elit.
                     Nihil deserunt repudiandae veritatis, suscipit officia quia
                     exercitationem eaque ducimus. Nisi, asperiores! Lorem, ipsum
                     dolor sit amet consectetur adipisicing elit. Repudiandae

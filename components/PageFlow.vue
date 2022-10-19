@@ -1,5 +1,4 @@
 <script setup lang="ts">
-
 interface PageFlowOptions {
     aspect?: string;
     height?: string;
@@ -13,16 +12,21 @@ const props = withDefaults(defineProps<PageFlowOptions>(), {
 });
 
 const pageFlow = usePageFlow();
-const parent = ref(null);
+const source = ref(null);
+const dest = ref(null);
 
 onMounted(() => {
-    pageFlow(parent.value, props);
+    console.log("Loaded");
+    if (source.value && dest.value) {
+        pageFlow(source.value, dest.value, props);
+    }
 });
 </script>
 
 <template>
-    <div ref="parent" class="page">
-        <slot />
+    <div class="page">
+        <div ref="dest" class="text-container"></div>
+        <div ref="source" class="invisible"><slot /></div>
     </div>
 </template>
 
@@ -36,5 +40,12 @@ onMounted(() => {
     box-shadow: 0px 0px 20px 10px grey;
     color: black;
     background-color: white;
+}
+.text-container {
+    border: solid black 1px;
+}
+
+.invisible {
+    display: none;
 }
 </style>
