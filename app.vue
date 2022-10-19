@@ -1,6 +1,6 @@
 <template>
     <div class="columns">
-        <div class="info">
+        <div class="info" >
             <h1>Page Flow</h1>
             <span>
                 The goal is to break up the contents of the page into new pages

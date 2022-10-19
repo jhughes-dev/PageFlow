@@ -11,40 +11,35 @@ interface PageFlowOptions {
 *   containing element all subsequent pages
 *   will be inserted as siblings of this node
 */
-const usePageFlow = () => ((source: HTMLElement, dest: Node, {aspect, height, margin}: PageFlowOptions) => {
-    console.log(`Number of Children ${source.children.length}`)
+const usePageFlow = () => ((source: HTMLElement, dest: HTMLElement, {aspect, height, margin}: PageFlowOptions) => {
+
     const children: HTMLElement[] = [];
-    for (let k = 0; k<source.children.length; ++k ){
+    for (let k = 0; k < source.children.length; ++k) {
         const node = source.children.item(k).cloneNode(true) as HTMLElement;
         node.classList.remove('invisible');
         children.push(node)
     }
     source.innerHTML = "";
 
-
-    console.log(`Number of Children ${source.children.length}`)
-
-
-    const [w, h] = aspect.split('/').map(n => Number(n));
-
     // Create a node that is fixed in width, and let each element fill the size.
-    const blankPage = source.parentElement.cloneNode() as HTMLElement;
+    const blankPage = source.parentElement.cloneNode(true) as HTMLElement;
     blankPage.style.padding = margin;
     blankPage.style.aspectRatio = aspect;
     blankPage.style.height = height;
     blankPage.innerHTML = "";
-
-    const {innerHeight,innerWidth} = getDimensions(blankPage);
+    //blankPage.classList.add('invisible')
+    // const [w, h] = aspect.split('/').map(n => Number(n));
+    const {innerHeight, innerWidth} = getDimensions(blankPage);
 
     source.parentElement.removeChild(source);
 
-    console.log({innerHeight,innerWidth})
+    console.log({innerHeight, innerWidth})
     document.body.insertBefore(blankPage, null);
+
+    const container = dest.parentElement;
+    let numPages = 1;
+    dest.id = `page-flow-${numPages}`;
     let remaining = innerHeight;
-
-    const container = dest.parentElement.parentElement;
-    console.log(`Number of Children ${children.length}`)
-
     for (let i = 0; i < children.length; ++i) {
 
         console.log(`loop ${i}`)
@@ -54,15 +49,13 @@ const usePageFlow = () => ((source: HTMLElement, dest: Node, {aspect, height, ma
         if (node.offsetHeight < remaining) {
             blankPage.removeChild(node);
             dest.insertBefore(node, null);
-            console.log(`Node ${i} inserted`)
             remaining -= node.offsetHeight;
-            console.log(remaining)
             // } else if (false) {
             //     // Need to split the node by text if possible.
         } else {
             let newPage = blankPage.cloneNode() as HTMLDivElement;
-
-            newPage.id = "page-flow"
+            numPages++;
+            newPage.id = `page-flow-${numPages}`;
             container.insertBefore(newPage, null);
             dest = newPage;
             dest.insertBefore(node, null);

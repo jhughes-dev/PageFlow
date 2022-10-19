@@ -24,8 +24,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="page">
-        <div ref="dest" class="text-container"></div>
+    <div class="page"  ref="dest">
         <div ref="source" class="invisible"><slot /></div>
     </div>
 </template>
@@ -41,10 +40,6 @@ onMounted(() => {
     color: black;
     background-color: white;
 }
-.text-container {
-    border: solid black 1px;
-}
-
 .invisible {
     display: none;
 }
