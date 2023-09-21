@@ -8,12 +8,12 @@
     "postinstall": "nuxt prepare"
   },
   "devDependencies": {
-    "nuxt": "^3.0.0-rc.12",
-    "sass-loader": "^13.1.0"
+    "nuxt": "^3.7.3",
+    "sass-loader": "^13.3.2"
   },
   "dependencies": {
-    "@types/node": "^18.8.5",
-    "sass": "^1.55.0",
-    "vue": "^3.2.41"
+    "@types/node": "^18.17.18",
+    "sass": "^1.67.0",
+    "vue": "^3.3.4"
   }
 }
