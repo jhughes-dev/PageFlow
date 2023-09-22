@@ -1,49 +1,68 @@
 <script setup lang="ts">
-interface PageFlowOptions {
-    aspect?: string;
-    height?: string;
-    margin?: string;
-}
+import {v4 as uuid} from "uuid";
+import {type PageFlowOptions} from "@/composables/usePageFlow";
 
-const props = withDefaults(defineProps<PageFlowOptions>(), {
-    aspect: "8.5/11",
-    height: "11in",
-    margin: "1in",
-    fontSize: "12pt",
-});
+const props = withDefaults(
+    defineProps<Partial<PageFlowOptions>>(),
+    DefaultOptions
+);
 
-const pageFlow = usePageFlow();
-const source = ref(null);
-const dest = ref(null);
+const content = ref(null);
 
-const update = () => {
-    console.log("Loaded");
-    if (source.value && dest.value) {
-        dest.value.innerHTML = "";
-        pageFlow(source.value, dest.value, props);
-    }
-};
+const flow = computed(() => pageFlow(content.value, props));
+const lineHeight = computed(() => flow.value.lineHeight);
+const fontPixels = computed(() => flow.value.fontSize);
 
-onMounted(update);
+const scaledHeight = computed(() => flow.value.height);
+const scaledMargin = computed(() => flow.value.margin);
+const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
+const uid = ref("");
+onMounted(() => (uid.value = uuid()));
 </script>
 
 <template>
-    <div class="page" ref="dest">
-        <div ref="source" class="invisible"><slot /></div>
+    <div class="flow-box">
+        <div
+            :id="`page-${idx}:${uid}`"
+            class="frame"
+            v-for="(page, idx) in flow.content"
+            :key="idx"
+        >
+            <div
+                v-for="elem in page"
+                class="content"
+                :id="`content-${idx}-${uid}`"
+            >
+               <p>{{ elem.innerHTML }}</p>
+            </div>
+        </div>
+        <div ref="content" class="invisible"><slot /></div>
     </div>
 </template>
 
 <style scoped lang="scss">
-.page {
+.flow-box {
+    display: flex;
+    flex-wrap: wrap;
+}
+.frame {
+    box-sizing: content-box;
+    text-rendering: geometricPrecision;
     aspect-ratio: v-bind(aspect);
-    height: v-bind(height);
-    padding: v-bind(margin);
-    margin: 0.5in;
-    overflow-y: hidden;
+    height: v-bind(scaledHeight);
+    padding: v-bind(scaledMargin);
+    margin: v-bind(interiorGap);
     box-shadow: 0px 0px 20px 10px grey;
     color: black;
     background-color: white;
-    font-size: v-bind(fontSize);
+    line-height: v-bind(lineHeight);
+    .content {
+        font-size: v-bind(fontPixels);
+        line-height: v-bind(lineHeight);
+    }
+}
+.content {
+    margin: 0;
 }
 .invisible {
     display: none;
