@@ -16,7 +16,7 @@ const size = ref(12);
             <PageFlow
                 class="centered"
                 aspect="8.5/11"
-                height="8in"
+                height="8.5in"
                 margin="1in"
                 :font-size="`${size}pt`"
             >
