@@ -12,8 +12,10 @@
     "sass-loader": "^13.3.2"
   },
   "dependencies": {
+    "@mdi/font": "^7.2.96",
     "@types/node": "^18.17.18",
     "sass": "^1.67.0",
-    "vue": "^3.3.4"
+    "vue": "^3.3.4",
+    "vuetify": "^3.3.17"
   }
 }

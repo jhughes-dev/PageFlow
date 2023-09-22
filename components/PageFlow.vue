@@ -9,6 +9,7 @@ const props = withDefaults(defineProps<PageFlowOptions>(), {
     aspect: "8.5/11",
     height: "11in",
     margin: "1in",
+    fontSize: "12pt",
 });
 
 const pageFlow = usePageFlow();
@@ -22,12 +23,12 @@ const update = () => {
         pageFlow(source.value, dest.value, props);
     }
 };
+
 onMounted(update);
-onUpdated(update);
 </script>
 
 <template>
-    <div class="page"  ref="dest">
+    <div class="page" ref="dest">
         <div ref="source" class="invisible"><slot /></div>
     </div>
 </template>
@@ -42,6 +43,7 @@ onUpdated(update);
     box-shadow: 0px 0px 20px 10px grey;
     color: black;
     background-color: white;
+    font-size: v-bind(fontSize);
 }
 .invisible {
     display: none;
