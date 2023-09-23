@@ -24,7 +24,7 @@ const scale = ref(1);
                 ></v-slider>
                 <p class="slider-label">Line Height: x {{ lineHeight }}</p>
                 <v-slider
-                    :min="0.1"
+                    :min="1"
                     :max="5"
                     step="0.1"
                     v-model="lineHeight"
@@ -42,8 +42,8 @@ const scale = ref(1);
         </v-navigation-drawer>
 
         <PageFlow
-            aspect="8.5/11"
-            height="8.5in"
+            width="8.5in"
+            height="11in"
             margin="1in"
             :line-height="lineHeight"
             :font-size="`${size}pt`"

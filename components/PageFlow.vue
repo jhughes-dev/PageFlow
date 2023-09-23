@@ -13,8 +13,9 @@ const flow = computed(() => pageFlow(content.value, props));
 const lineHeight = computed(() => flow.value.lineHeight);
 const fontPixels = computed(() => flow.value.fontSize);
 
-const scaledHeight = computed(() => flow.value.height);
 const scaledMargin = computed(() => flow.value.margin);
+const scaledHeight = computed(() => flow.value.height);
+const scaledWidth = computed(() => flow.value.width);
 const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
 const uid = ref("");
 onMounted(() => (uid.value = uuid()));
@@ -33,7 +34,7 @@ onMounted(() => (uid.value = uuid()));
                 class="content"
                 :id="`content-${idx}-${uid}`"
             >
-               <p>{{ elem.innerHTML }}</p>
+                <p>{{ elem.innerHTML }}</p>
             </div>
         </div>
         <div ref="content" class="invisible"><slot /></div>
@@ -41,6 +42,8 @@ onMounted(() => (uid.value = uuid()));
 </template>
 
 <style scoped lang="scss">
+$adjusted-height: calc(v-bind(scaledHeight) - calc(2 * v-bind(scaledMargin)));
+$adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
 .flow-box {
     display: flex;
     flex-wrap: wrap;
@@ -48,8 +51,13 @@ onMounted(() => (uid.value = uuid()));
 .frame {
     box-sizing: content-box;
     text-rendering: geometricPrecision;
-    aspect-ratio: v-bind(aspect);
-    height: v-bind(scaledHeight);
+
+    min-height: $adjusted-height;
+    max-height: $adjusted-height;
+
+    min-width: $adjusted-width;
+    max-width: $adjusted-width;
+
     padding: v-bind(scaledMargin);
     margin: v-bind(interiorGap);
     box-shadow: 0px 0px 20px 10px grey;
@@ -62,7 +70,6 @@ onMounted(() => (uid.value = uuid()));
     }
 }
 .content {
-    margin: 0;
 }
 .invisible {
     display: none;

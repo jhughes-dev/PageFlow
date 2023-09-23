@@ -1,8 +1,8 @@
 // Some script setup issues won't let this export into Nuxt/Vue components
 export type PageFlowOptions = {
     templateNode: HTMLElement | undefined;
-    aspect: string;
     height: string;
+    width: string;
     margin: string;
     fontSize: string;
     lineHeight: number | string;
@@ -15,8 +15,8 @@ const INCH_TO_PX = 96;
 
 export const DefaultOptions: PageFlowOptions = {
     templateNode: undefined,
-    aspect: "1/1",
     height: "100%",
+    width: "100%",
     margin: "1rem",
     fontSize: "12pt",
     lineHeight: 1.5,
@@ -76,8 +76,10 @@ const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowPa
     const opts = {...DefaultOptions, ...partial_opts}
     // Scale all params:
 
-    opts.height = scaleUnit(opts.height, opts.scale);
     opts.margin = scaleUnit(opts.margin, opts.scale);
+    opts.height = scaleUnit(opts.height, opts.scale);
+    opts.width = scaleUnit(opts.width, opts.scale);
+
     if (typeof opts.lineHeight === "number") {
         opts.lineHeight = scaleUnit(opts.fontSize, opts.scale * opts.lineHeight) as string;
     } else if (typeof opts.lineHeight === "string") {
@@ -88,44 +90,73 @@ const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowPa
     return {...opts, fontPixels};
 };
 
-const createFrame = (opts: PageFlowParameters) => {
-    const frame = document.createElement("div") as HTMLDivElement;
-    frame.innerHTML = "";
-    frame.id = "frame";
+const createPage = (opts: PageFlowParameters) => {
+    const page = document.createElement("div") as HTMLDivElement;
+    page.innerHTML = "";
+    page.id = "page";
 
     // (content.parentNode as HTMLElement).removeChild(content);
-    frame.style.position = "fixed";
-    frame.style.display = "flex";
-    frame.style.float = "left";
+    page.style.position = "fixed";
+    page.style.display = "flex";
+    page.style.float = "left";
 
-    frame.style.boxSizing = "content-box"  // Maybe dont' need this, can get from template
+    // Not sure why, but without this, it basically ignores the min/max sizes.
+    page.style.boxSizing = "content-box";
 
-    frame.style.aspectRatio = opts.aspect;
-    // Why everyone gets so frustrated with CSS
-    frame.style.height = opts.height;
-    frame.style.maxHeight = opts.height;
-    frame.style.minHeight = opts.height;
     // What we think of in print as a Margin is really the padding of the container
-    frame.style.padding = opts.margin;
+    page.style.padding = opts.margin;
 
-    frame.style.lineHeight = opts.lineHeight
-    frame.style.fontSize = opts.fontSize;
+    document.body.insertBefore(page, null);
 
-    return frame;
+    // This is all to get the height with the internal
+    // padding, just to remove the internal padding....
+    page.style.height = opts.height;
+    page.style.maxHeight = opts.height;
+    page.style.minHeight = opts.height;
+
+    page.style.width = opts.width;
+    page.style.maxWidth = opts.width;
+    page.style.minWidth = opts.width;
+
+    const style = window.getComputedStyle(page, null);
+    const padding = {
+        left: splitUnits(style.getPropertyValue('padding-left')).value,
+        right: splitUnits(style.getPropertyValue('padding-right')).value,
+        top: splitUnits(style.getPropertyValue('padding-top')).value,
+        bottom: splitUnits(style.getPropertyValue('padding-bottom')).value
+    }
+
+    const h = splitUnits(style.getPropertyValue('height')).value - padding.top - padding.bottom;
+    const w = splitUnits(style.getPropertyValue('width')).value - padding.left - padding.right;
+
+    // Why everyone gets so frustrated with CSS... is it
+    // too much to ask to be able to specify exact sizes
+    // and have those get respected. LOL
+    // https://css-tricks.com/wp-content/uploads/2021/04/css-is-awesome.jpg
+    page.style.height = `${h}px`;
+    page.style.maxHeight = `${h}px`;
+    page.style.minHeight = `${h}px`;
+
+    page.style.width = `${w}px`;
+    page.style.maxWidth = `${w}px`;
+    page.style.minWidth = `${w}px`;
+
+    page.style.lineHeight = opts.lineHeight
+    page.style.fontSize = opts.fontSize;
+
+    return page;
 }
 
 function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeight: number, innerWidth: number, rowHeight: number} {
-    // Take the external page, and fill it with a div that's 100% width and height.
+    // Take the external page, and fill it with a div that's 100% width and width.
     const interior_area = document.createElement('div');
 
-    interior_area.style.boxSizing = "content-box" // Maybe this comes from template
     interior_area.style.display = "block"
     interior_area.style.height = "100%";
     interior_area.style.width = "100%";
 
     page.insertBefore(interior_area, null);
-    // page needs to be in the document before it will get sized.
-    document.body.insertBefore(page, null);
+
 
     // Once sized, the interior_area gives the interior dimensions of the page.
     const innerHeight = interior_area.scrollHeight;
@@ -140,7 +171,6 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
     interior_area.insertBefore(text, null);
 
     const rowHeight = text.scrollHeight;
-    document.body.removeChild(page);
     page.removeChild(interior_area);
     return {innerHeight, innerWidth, rowHeight};
 }
@@ -158,26 +188,32 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
     if (!content) {
         // well that was easy
-        return {content: [], innerHeight: NaN, innerWidth: NaN, rowHeight: NaN};
+        return {
+            content: [] as HTMLElement[],
+            innerHeight: NaN,
+            innerWidth: NaN,
+            rowHeight: NaN,
+            ...applyDefaultOptions(options)
+        };
     }
     console.log("Flowing at " + JSON.stringify(options));
 
     const opts = applyDefaultOptions(options);
 
-    const page = createFrame(opts);
+    const page = createPage(opts);
+    // page.style.visibility = 'hidden';
 
+    // page needs to be in the document before it will get sized.
     const {innerHeight, innerWidth, rowHeight} = getDimensions(page, opts);
 
     const content_children = [...content.children];
 
     const page_content: any[] = [];
 
-    document.body.insertBefore(page, null);
 
     const container = document.createElement("div");
     container.style.height = 'inheirit';
     page.appendChild(container);
-
     let used_height = 0
     content_children.forEach((child, idx) => {
 
