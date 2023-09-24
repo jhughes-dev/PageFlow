@@ -1,6 +1,6 @@
 // Some script setup issues won't let this export into Nuxt/Vue components
 export type PageFlowOptions = {
-    templateNode: HTMLElement | undefined;
+    templateNode: HTMLElement | null;
     height: string;
     width: string;
     margin: string;
@@ -13,8 +13,7 @@ export type PageFlowOptions = {
 const INCH_TO_PT = 72;
 const INCH_TO_PX = 96;
 
-export const DefaultOptions: PageFlowOptions = {
-    templateNode: undefined,
+export const DefaultOptions: Partial<PageFlowOptions> = {
     height: "100%",
     width: "100%",
     margin: "1rem",
@@ -23,6 +22,14 @@ export const DefaultOptions: PageFlowOptions = {
     scale: 1,
     PPI: INCH_TO_PX,
 }
+
+
+export type Flow = {
+    content: HTMLElement[][],
+    innerHeight: number,
+    innerWidth: number,
+    rowHeight: number
+} & PageFlowParameters
 
 type NumberWithUnit = {
     value: number,
@@ -47,24 +54,34 @@ function splitUnits(v: string): NumberWithUnit {
             unit: ""
         }
     }
-
 }
 
-const getFontPixelSize = ({fontSize, PPI, scale}: PageFlowOptions): number => {
-    const temp = document.createElement("div") as HTMLDivElement;
-    temp.style.fontSize = fontSize;
-    document.body.insertBefore(temp, null);
-    // This should always return pixels
-    const {value: size, unit: pixels} = splitUnits(window.getComputedStyle(temp, null).getPropertyValue('font-size'));
-    document.body.removeChild(temp);
-    console.assert(pixels === "px", `Expected "px" saw: ${pixels}`);
+const getFontPixelSize = ({fontSize, scale}: PageFlowOptions): number => {
+    let {value, unit} = splitUnits(fontSize)
 
-    const expected = splitUnits(fontSize);
-    if (expected.unit === "pt") {
-        expected.value = INCH_TO_PX * expected.value / INCH_TO_PT;
-        expected.unit = 'px'
+    if (typeof document !== "undefined") {
+        // If we have access to the document, we can get this exactly
+        const temp = document.createElement("div") as HTMLDivElement;
+        temp.style.fontSize = fontSize;
+        document.body.insertBefore(temp, null);
+        // This should always return pixels
+        const {value: v, unit: pixels} = splitUnits(window.getComputedStyle(temp, null).getPropertyValue('font-size'));
+        document.body.removeChild(temp);
+        console.assert(pixels === "px", `Expected "px" saw: ${pixels}`);
+        value = v;
+    } else {
+        // No document available, just assume defaults
+        if (unit === "pt") {
+            value = scale * INCH_TO_PX * value / INCH_TO_PT;
+        } else if (unit === "in") {
+            value = scale * INCH_TO_PX * value;
+        } else {
+            throw `Unimplemented unit: ${unit}. Expected 'pt','px', or 'in'.`
+        }
     }
-    return (size);
+
+    return value;
+
 }
 
 const scaleUnit = (param: string, scale: number) => {
@@ -73,7 +90,7 @@ const scaleUnit = (param: string, scale: number) => {
 }
 
 const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowParameters => {
-    const opts = {...DefaultOptions, ...partial_opts}
+    const opts = {...DefaultOptions, templateNode: undefined, ...partial_opts} as PageFlowParameters
     // Scale all params:
 
     opts.margin = scaleUnit(opts.margin, opts.scale);
@@ -92,6 +109,8 @@ const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowPa
 
 const createPage = (opts: PageFlowParameters) => {
     const page = document.createElement("div") as HTMLDivElement;
+    document.body.insertBefore(page, null);
+
     page.innerHTML = "";
     page.id = "page";
 
@@ -106,7 +125,27 @@ const createPage = (opts: PageFlowParameters) => {
     // What we think of in print as a Margin is really the padding of the container
     page.style.padding = opts.margin;
 
-    document.body.insertBefore(page, null);
+    // HTML/CSS pushed Margins out from the page, we want the other way around
+    adjustMargins(page, opts);
+
+    page.style.lineHeight = opts.lineHeight
+    page.style.fontSize = opts.fontSize;
+
+    return page;
+}
+
+function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
+    // TODO: Find a better way to do this
+
+    // CSS Margin goes outward from the box, so if the element is set to:
+    //    (width) by (height)
+    // then margin is applied you get a bounding box of:
+    //    (margin-left + width + margin-right) by (margin-top + height + margin-bottom)
+    // But I want a bounding box of (width) by (height), with an internal usable space thats
+    //    (width - margin-left - margin-right) by (height - margin-top - margin-bottom)
+
+    // But also, the page background should look like a page, so instead of margin, use padding
+    // The math is essentially the same.
 
     // This is all to get the height with the internal
     // padding, just to remove the internal padding....
@@ -119,12 +158,13 @@ const createPage = (opts: PageFlowParameters) => {
     page.style.minWidth = opts.width;
 
     const style = window.getComputedStyle(page, null);
+
     const padding = {
         left: splitUnits(style.getPropertyValue('padding-left')).value,
         right: splitUnits(style.getPropertyValue('padding-right')).value,
         top: splitUnits(style.getPropertyValue('padding-top')).value,
         bottom: splitUnits(style.getPropertyValue('padding-bottom')).value
-    }
+    };
 
     const h = splitUnits(style.getPropertyValue('height')).value - padding.top - padding.bottom;
     const w = splitUnits(style.getPropertyValue('width')).value - padding.left - padding.right;
@@ -140,11 +180,6 @@ const createPage = (opts: PageFlowParameters) => {
     page.style.width = `${w}px`;
     page.style.maxWidth = `${w}px`;
     page.style.minWidth = `${w}px`;
-
-    page.style.lineHeight = opts.lineHeight
-    page.style.fontSize = opts.fontSize;
-
-    return page;
 }
 
 function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeight: number, innerWidth: number, rowHeight: number} {
@@ -156,7 +191,6 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
     interior_area.style.width = "100%";
 
     page.insertBefore(interior_area, null);
-
 
     // Once sized, the interior_area gives the interior dimensions of the page.
     const innerHeight = interior_area.scrollHeight;
@@ -175,21 +209,16 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
     return {innerHeight, innerWidth, rowHeight};
 }
 
-type Flow = {
-    content: HTMLElement[],
-    innerHeight: number,
-    innerWidth: number,
-    rowHeight: number
-} & PageFlowParameters
 /*
-* @param: content - This should contain all the elements we want to paginate
+* @param: content - The elements to be paginated
+* @param: options
 */
 export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowOptions>): Flow => {
 
     if (!content) {
         // well that was easy
         return {
-            content: [] as HTMLElement[],
+            content: [] as HTMLElement[][],
             innerHeight: NaN,
             innerWidth: NaN,
             rowHeight: NaN,
@@ -201,7 +230,6 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     const opts = applyDefaultOptions(options);
 
     const page = createPage(opts);
-    // page.style.visibility = 'hidden';
 
     // page needs to be in the document before it will get sized.
     const {innerHeight, innerWidth, rowHeight} = getDimensions(page, opts);
@@ -233,8 +261,6 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             container.removeChild(inner_content);
             return
         }
-
-
 
         if (remaining_height - node_height > rowHeight) {
             // Will keep this node

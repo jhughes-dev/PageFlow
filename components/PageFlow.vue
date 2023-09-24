@@ -1,41 +1,42 @@
 <script setup lang="ts">
-import {v4 as uuid} from "uuid";
-import {type PageFlowOptions} from "@/composables/usePageFlow";
+import {type PageFlowOptions, type Flow} from "@/composables/usePageFlow";
 
-const props = withDefaults(
-    defineProps<Partial<PageFlowOptions>>(),
-    DefaultOptions
-);
+const uuid = useUUID();
+
+const props = withDefaults(defineProps<PageFlowOptions>(), {
+    ...DefaultOptions,
+    templateNode: null,
+});
 
 const content = ref(null);
 
-const flow = computed(() => pageFlow(content.value, props));
-const lineHeight = computed(() => flow.value.lineHeight);
-const fontPixels = computed(() => flow.value.fontSize);
+const flow = computed<Flow>(() => pageFlow(content?.value, props));
 
+// Cannot use this in v-bin in css directly from 'flow'
 const scaledMargin = computed(() => flow.value.margin);
 const scaledHeight = computed(() => flow.value.height);
 const scaledWidth = computed(() => flow.value.width);
 const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
-const uid = ref("");
-onMounted(() => (uid.value = uuid()));
+
+const lineHeight = computed(() => flow.value.lineHeight);
+const fontPixels = computed(() => flow.value.fontSize);
 </script>
 
 <template>
     <div class="flow-box">
         <div
-            :id="`page-${idx}:${uid}`"
+            :id="`page-${idx}:${uuid}`"
             class="frame"
             v-for="(page, idx) in flow.content"
             :key="idx"
         >
-            <div
+            <p
                 v-for="elem in page"
                 class="content"
-                :id="`content-${idx}-${uid}`"
+                :id="`content-${idx}-${uuid}`"
             >
-                <p>{{ elem.innerHTML }}</p>
-            </div>
+                {{ elem.innerHTML }}
+            </p>
         </div>
         <div ref="content" class="invisible"><slot /></div>
     </div>
@@ -68,8 +69,6 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
         font-size: v-bind(fontPixels);
         line-height: v-bind(lineHeight);
     }
-}
-.content {
 }
 .invisible {
     display: none;
