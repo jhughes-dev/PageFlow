@@ -2,6 +2,8 @@
 A typscript utility to break content across multiple fixed size "pages". Think of a print preview.
 This uses Nuxt3/Vue3 as an example to demonstrate the concept.
 
+See the demo at https://pageflow.netlify.app
+
 # Nuxt 3 Minimal Starter
 
 Look at the [nuxt 3 documentation](https://v3.nuxtjs.org) to learn more.
