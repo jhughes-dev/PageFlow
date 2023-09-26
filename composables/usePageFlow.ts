@@ -1,13 +1,12 @@
 // Some script setup issues won't let this export into Nuxt/Vue components
 export type PageFlowOptions = {
-    templateNode: HTMLElement | null;
+    templateNode?: HTMLElement | null;
     height: string;
     width: string;
     margin: string;
     fontSize: string;
     lineHeight: number | string;
     scale: number;
-    PPI: number;
 };
 
 const INCH_TO_PT = 72;
@@ -20,7 +19,6 @@ export const DefaultOptions: Partial<PageFlowOptions> = {
     fontSize: "12pt",
     lineHeight: 1.5,
     scale: 1,
-    PPI: INCH_TO_PX,
 }
 
 

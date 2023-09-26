@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {type PageFlowOptions, type Flow} from "@/composables/usePageFlow";
-
 const uuid = useUUID();
 
 const props = withDefaults(defineProps<PageFlowOptions>(), {

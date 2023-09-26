@@ -6,13 +6,6 @@ const scale = ref(1);
 
 <template>
     <v-container class="page-panel">
-        <v-app-bar extended>
-            <v-app-bar-title>
-                The goal is to break up the contents of the page into new pages
-                to make the disply look like printable pages. I.e. the content
-                flows across the pages.
-            </v-app-bar-title>
-        </v-app-bar>
         <v-navigation-drawer permanent extended>
             <v-container>
                 <p class="slider-label">Font Size: {{ size }} pt</p>
