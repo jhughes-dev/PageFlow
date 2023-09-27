@@ -1,6 +1,5 @@
 // Some script setup issues won't let this export into Nuxt/Vue components
-export type PageFlowOptions = {
-    templateNode?: HTMLElement | null;
+export type PageFlowProps = {
     height: string;
     width: string;
     margin: string;
@@ -9,9 +8,13 @@ export type PageFlowOptions = {
     scale: number;
 };
 
+
 const INCH_TO_PT = 72;
 const INCH_TO_PX = 96;
-
+type PageFlowOptions = PageFlowProps & {
+    pageTemplate?: HTMLElement
+    contentTemplate?: HTMLElement
+}
 export const DefaultOptions: Partial<PageFlowOptions> = {
     height: "100%",
     width: "100%",

@@ -1,17 +1,25 @@
 <script setup lang="ts">
-import {type PageFlowOptions, type Flow} from "@/composables/usePageFlow";
+import {type PageFlowProps, type Flow} from "@/composables/usePageFlow";
 const uuid = useUUID();
 
-const props = withDefaults(defineProps<Partial<PageFlowOptions>>(), {
+const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
     ...DefaultOptions,
-    templateNode: null,
 });
 
 const content = ref(null);
+const page_template = ref<Ref<HTMLElement>>({});
+const content_template = ref<Ref<HTMLElement>>({});
 
-const flow = computed<Flow>(() => pageFlow(content?.value, props));
+const flow = computed<Flow>(() => {
+    const pageTemplate =
+        (page_template.value?.firstChild as HTMLElement) ?? undefined;
+    const contentTemplate =
+        (content_template.value?.firstChild as HTMLElement) ?? undefined;
 
-// Cannot use this in v-bin in css directly from 'flow'
+    return pageFlow(content?.value, {...props, pageTemplate, contentTemplate});
+});
+
+// Cannot use this in v-bind in css directly from 'flow'
 const scaledMargin = computed(() => flow.value.margin);
 const scaledHeight = computed(() => flow.value.height);
 const scaledWidth = computed(() => flow.value.width);
@@ -19,6 +27,7 @@ const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
 
 const lineHeight = computed(() => flow.value.lineHeight);
 const fontPixels = computed(() => flow.value.fontSize);
+
 onUpdated(() =>
     flow.value.content.forEach((page, pidx) =>
         page.forEach((block, bidx) =>
@@ -34,7 +43,7 @@ onUpdated(() =>
     <div v-bind="$attrs" class="flow-box">
         <div
             :id="`page-${idx}:${uuid}`"
-            class="frame"
+            class="page"
             v-for="(page, idx) in flow.content"
             :key="idx"
         >
@@ -49,14 +58,14 @@ onUpdated(() =>
     </div>
     <!-- Content is stored here -->
     <div ref="content" class="invisible"><slot /></div>
-    <!-- Pass a custom frame via template -->
+    <!-- Pass a custom page via template -->
     <div class="invisible">
-        <slot name="frameTemplate" />
+        <slot name="page_template" />
     </div>
     <!-- Pass a template for the content, props passed have precedence -->
     <!-- If multiples are passed in, should look over them-->
     <div class="invisible">
-        <slot name="contentTemplate" />
+        <slot name="content_template" />
     </div>
 </template>
 
@@ -67,7 +76,7 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
     display: flex;
     flex-wrap: wrap;
 }
-.frame {
+.page {
     box-sizing: content-box;
     text-rendering: geometricPrecision;
 
@@ -86,8 +95,5 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
         font-size: v-bind(fontPixels);
         line-height: v-bind(lineHeight);
     }
-}
-.invisible {
-    display: none;
 }
 </style>

@@ -31,21 +31,20 @@ const content = [
                 Have you ever wanted to fit some text in an HTML page where you
                 really,
                 <em>really,</em>
-                just want it to fit in a fixed space no matter what? Well, the
-                way that HTML works doesn't make that really easy. If you have
-                to do that with dynamic text, you may want to deal with the
-                overflow by "paginating" it over different nodes, and that gets
-                even harder.
+                just want it to fit in a fixed space no matter what? HTML
+                doesn't make that easy. If you have to deal with dynamic text,
+                you may want to handle the overflow by "paginating" it over
+                different nodes, and that gets even harder.
             </p>
             <p>
                 The goal of PageFlow is to enable web developers to do just
                 this, to distribute text over fixed size "pages".
             </p>
-            <p>For example, this text is split into ...</p>
+            <p>For example, this text ...</p>
             <div class="full-content">
                 <p>{{ content }}</p>
             </div>
-            <p>... these 3in by 2in pages.</p>
+            <p>... is split into these 3in by 2in pages.</p>
             <PageFlow height="3in" width="2in" margin="1rem">
                 <p>{{ content }}</p>
             </PageFlow>
@@ -92,7 +91,7 @@ const content = [
 
 .full-content {
     width: 80%;
-    margin: 0 auto;
+    margin: 1rem auto;
     padding: 3em;
     background-color: white;
     color: black;
