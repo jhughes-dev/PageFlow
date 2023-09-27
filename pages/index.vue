@@ -1,38 +1,87 @@
 <template>
     <v-card class="page-flow">
-        <v-img src="@/assets/images/page_wall.jpg"></v-img>
+        <v-img
+            height="300"
+            src="images/page_wall.jpg"
+            alt="Open books pinned to a wall."
+            cover
+        />
         <v-card-title class="title">Page Flow</v-card-title>
         <v-card-text class="text">
-            The goal of PageFlow is to enable web developers to distribute text
-            over fixed size "Pages". This could be for a focused screen reader,
-            or a print preview. Or any time you have a fixed size to fill text
-            in.
+            <p>
+                Have you ever wanted to fit some text in an HTML page where you
+                really,
+                <em>really,</em>
+                just want it to fit in a fixed space no matter what? Well, the
+                way that HTML works doesn't make that really easy. If you have
+                to do that with dynamic text, you may want to deal with the
+                overflow by "paginating" it over different nodes, and that gets
+                even harder.
+            </p>
+            <p>
+                The goal of PageFlow is to enable web developers to do just
+                this, to distribute text over fixed size "pages".
+            </p>
+            <PageFlow height="2in" width="3in" margin="2rem" class="flex-row">
+                <p>
+                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                    Incidunt beatae tempora eius veniam explicabo ad
+                    voluptatibus temporibus neque accusantium aperiam, earum
+                    provident molestiae ducimus distinctio voluptates modi
+                    dolores ullam placeat libero itaque, debitis asperiores?
+                    Labore maxime est unde officiis ratione soluta animi
+                    mollitia dolor quasi odio, sint numquam, harum commodi
+                    itaque dolorum laboriosam porro id ipsum dignissimos
+                    quibusdam cumque. Porro voluptate cupiditate tenetur vero
+                    enim a magnam, ipsam id odit odio inventore dolorem nam
+                    tempora! In voluptatum cupiditate atque dolor porro
+                    quibusdam sapiente laborum inventore maxime, id aliquam ab,
+                    consequatur quod at. Distinctio quaerat sunt, ullam quam
+                    reiciendis repellendus maxime?
+                </p>
+            </PageFlow>
+            <p>
+                PageFlow splits text across distinct, disconnected Nodes instead
+                of overflowing, and let's you define the size and margins of the
+                "page" you want to work with, or pass in a template page and
+                fill with some content.
+            </p>
         </v-card-text>
     </v-card>
 </template>
 
 <style scoped lang="scss">
+.flex-row {
+    box-sizing: content-box;
+    display: flex;
+    margin: 0 auto;
+}
 .page-flow {
-    text-shadow: 0px 4px 6px rgba(0, 0, 0, 0.9), 0px 4px 12px rgba(0, 0, 0, 0.9);
-    max-width: 500px;
-    margin: 3rem auto;
+    max-width: 75vw;
+    margin: 1rem auto;
     border-radius: 10pt;
-    background-image: url(~~/assets/images/page_wall.jpg);
-    background-size: 200%;
 }
 
 .title {
+    text-align: center;
     padding: 1em;
-    font-size: 32pt;
+    font-size: 64pt;
     font-weight: 700;
+    margin: 0 auto;
 }
 
 .text {
-    margin: 1em;
-    padding: 1em;
-    font-size: 14pt;
+    margin: 2rem;
+    padding: 2rem;
+    font-size: 16pt;
+    line-height: 1.5;
     box-shadow: 0 0 10pt rgba(0, 0, 0, 1);
     border-radius: 10pt;
     background: rgba(0, 0, 0, 0.8);
+}
+
+p {
+    text-indent: 3rem;
+    margin: 1rem 0;
 }
 </style>

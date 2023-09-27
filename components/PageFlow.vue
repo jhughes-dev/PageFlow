@@ -2,7 +2,7 @@
 import {type PageFlowOptions, type Flow} from "@/composables/usePageFlow";
 const uuid = useUUID();
 
-const props = withDefaults(defineProps<PageFlowOptions>(), {
+const props = withDefaults(defineProps<Partial<PageFlowOptions>>(), {
     ...DefaultOptions,
     templateNode: null,
 });
@@ -22,7 +22,7 @@ const fontPixels = computed(() => flow.value.fontSize);
 </script>
 
 <template>
-    <div class="flow-box">
+    <div v-bind="$attrs" class="flow-box">
         <div
             :id="`page-${idx}:${uuid}`"
             class="frame"
@@ -37,7 +37,17 @@ const fontPixels = computed(() => flow.value.fontSize);
                 {{ elem.innerHTML }}
             </p>
         </div>
-        <div ref="content" class="invisible"><slot /></div>
+    </div>
+    <!-- Content is stored here -->
+    <div ref="content" class="invisible"><slot /></div>
+    <!-- Pass a custom frame via template -->
+    <div class="invisible">
+        <slot name="frameTemplate" />
+    </div>
+    <!-- Pass a template for the content, props passed have precedence -->
+    <!-- If multiples are passed in, should look over them-->
+    <div class="invisible">
+        <slot name="contentTemplate" />
     </div>
 </template>
 
@@ -60,7 +70,6 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
 
     padding: v-bind(scaledMargin);
     margin: v-bind(interiorGap);
-    box-shadow: 0px 0px 20px 10px grey;
     color: black;
     background-color: white;
     line-height: v-bind(lineHeight);
