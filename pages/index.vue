@@ -45,8 +45,8 @@ const content = [
             <div class="full-content">
                 <p>{{ content }}</p>
             </div>
-            <p>... These 3in by 2in pages.</p>
-            <PageFlow height="3in" width="2in" margin="1em" class="flex-row">
+            <p>... these 3in by 2in pages.</p>
+            <PageFlow height="3in" width="2in" margin="1rem">
                 <p>{{ content }}</p>
             </PageFlow>
             <p>
