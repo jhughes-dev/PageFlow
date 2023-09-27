@@ -241,25 +241,27 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     container.style.height = 'inheirit';
     page.appendChild(container);
 
-    function cloneChild(child: HTMLElement) {
-        const inner_content = child.cloneNode() as HTMLElement;
-        inner_content.innerHTML = child.innerHTML;
-
-        inner_content.style.lineHeight = opts.lineHeight;
-        inner_content.style.fontSize = opts.fontSize;
-        return inner_content;
+    function cloneChild(child: HTMLElement): HTMLElement {
+        const clone = child.cloneNode() as HTMLElement;
+        clone.innerHTML = child.innerHTML;
+        clone.style.lineHeight = opts.lineHeight;
+        clone.style.fontSize = opts.fontSize;
+        return clone;
     }
 
     function extractTextNodes(inner_content: HTMLElement) {
         const first_child = inner_content.firstChild as HTMLElement;
-        const partial_content = inner_content.cloneNode() as HTMLElement;
+
+        const words = first_child?.textContent?.trim().split(" ") || [];
+        return words;
+    }
+
+    function splitTextIntoRemainingSpace(words: string[], inner_content: HTMLElement) {
+
+        const partial_content = cloneChild(inner_content) as HTMLElement;
         partial_content.style.lineHeight = opts.lineHeight;
         partial_content.style.fontSize = opts.fontSize;
         partial_content.innerText = "";
-        return {first_child, partial_content};
-    }
-
-    function splitTextIntoRemainingSpace(words: string[], partial_content: HTMLElement) {
 
         container.appendChild(partial_content);
         partial_content.innerText += words[0];
@@ -274,20 +276,11 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
         container.removeChild(partial_content);
 
-        if (i == 0) {
-            // Didn't manage to add the row, don't bother keeping it
-            return {
-                first: null,
-                rest: words.join(" ")
-            }
-        } else {
-            // TODO: Need to handle orphan words here too, but fine for now
-            return {
-                rest: words.splice(i - 1).join(" "),
-                first: words.join(" ")
-            }
-        }
+        // i==0, one word pushed us over.
+        const rest = (i == 0) ? words.join(" ") : words.splice(i - 1).join(" ");
+        const first = (i == 0) ? null : words.join(" ");
 
+        return {first, rest}
     }
 
     let used_height = 0;
@@ -307,37 +300,35 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
         } else {
             // Split the node
             container.removeChild(inner_content);
-            const {first_child, partial_content} = extractTextNodes(inner_content);
-
-            const words = first_child?.textContent?.trim().split(" ") || [];
-            const parts = splitTextIntoRemainingSpace(words, partial_content);
+            const words = extractTextNodes(inner_content);
+            const parts = splitTextIntoRemainingSpace(words, inner_content);
 
             if (parts.first) {
+                const partial_content = cloneChild(inner_content);
+                partial_content.style.paddingBottom = '0';
                 partial_content.innerText = parts.first;
                 container.appendChild(partial_content);
-
-                console.log(`Added ${partial_content.scrollHeight} to page ${page_content.length} at the end`)
+                console.log(`Added ${partial_content.scrollHeight} to page ${page_content.length} at the end`);
             }
             used_height = innerHeight;
 
             if (parts.rest.length > 0) {
-                const nextContent = partial_content.cloneNode() as HTMLElement;
+                const nextContent = cloneChild(inner_content);
                 nextContent.innerText = parts.rest;
                 content_children.push(nextContent);
                 console.log(`Pushed remaining content to next page.`)
-
             }
         }
 
-        if (innerHeight - used_height < rowHeight) {
+        done = (content_children.length === 0);
+
+        if (innerHeight - used_height < rowHeight || done) {
             // Page is full
             page_content.push([...(container.children)]);
             container.innerHTML = "";
             console.log(`Page Added: ${page_content.length}`)
             used_height = 0;
         }
-        done = (content_children.length === 0);
-
     }
 
     document.body.removeChild(page);

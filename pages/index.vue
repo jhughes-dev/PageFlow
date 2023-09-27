@@ -1,3 +1,21 @@
+<script setup>
+const content = [
+    "Lorem ipsum dolor sit amet consectetur adipisicing elit.",
+    "Incidunt beatae tempora eius veniam explicabo ad",
+    "voluptatibus temporibus neque accusantium aperiam, earum",
+    "provident molestiae ducimus distinctio voluptates modi",
+    "dolores ullam placeat libero itaque, debitis asperiores?",
+    "Labore maxime est unde officiis ratione soluta animi",
+    "mollitia dolor quasi odio, sint numquam, harum commodi",
+    "itaque dolorum laboriosam porro id ipsum dignissimos",
+    "quibusdam cumque. Porro voluptate cupiditate tenetur vero",
+    "enim a magnam, ipsam id odit odio inventore dolorem nam",
+    "tempora! In voluptatum cupiditate atque dolor porro",
+    "quibusdam sapiente laborum inventore maxime, id aliquam ab,",
+    "consequatur quod at. Distinctio quaerat sunt, ullam quam",
+    "reiciendis repellendus maxime?",
+].join(" ");
+</script>
 <template>
     <v-card class="page-flow">
         <v-img
@@ -7,6 +25,7 @@
             cover
         />
         <v-card-title class="title">Page Flow</v-card-title>
+
         <v-card-text class="text">
             <p>
                 Have you ever wanted to fit some text in an HTML page where you
@@ -22,23 +41,11 @@
                 The goal of PageFlow is to enable web developers to do just
                 this, to distribute text over fixed size "pages".
             </p>
-            <PageFlow height="2in" width="3in" margin="2rem" class="flex-row">
-                <p>
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                    Incidunt beatae tempora eius veniam explicabo ad
-                    voluptatibus temporibus neque accusantium aperiam, earum
-                    provident molestiae ducimus distinctio voluptates modi
-                    dolores ullam placeat libero itaque, debitis asperiores?
-                    Labore maxime est unde officiis ratione soluta animi
-                    mollitia dolor quasi odio, sint numquam, harum commodi
-                    itaque dolorum laboriosam porro id ipsum dignissimos
-                    quibusdam cumque. Porro voluptate cupiditate tenetur vero
-                    enim a magnam, ipsam id odit odio inventore dolorem nam
-                    tempora! In voluptatum cupiditate atque dolor porro
-                    quibusdam sapiente laborum inventore maxime, id aliquam ab,
-                    consequatur quod at. Distinctio quaerat sunt, ullam quam
-                    reiciendis repellendus maxime?
-                </p>
+            <p>For example, this text is split into ...</p>
+            <div class="full-content">{{ content }}</div>
+            <p>... These pages.</p>
+            <PageFlow height="3in" width="2in" margin="1rem" class="flex-row">
+                <p>{{ content }}</p>
             </PageFlow>
             <p>
                 PageFlow splits text across distinct, disconnected Nodes instead
@@ -55,6 +62,7 @@
     box-sizing: content-box;
     display: flex;
     margin: 0 auto;
+    padding: 3em;
 }
 .page-flow {
     max-width: 75vw;
@@ -83,5 +91,13 @@
 p {
     text-indent: 3rem;
     margin: 1rem 0;
+}
+
+.full-content {
+    width: 80%;
+    margin: 0 auto;
+    padding: 3em;
+    background-color: white;
+    color: black;
 }
 </style>
