@@ -232,7 +232,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     // page needs to be in the document before it will get sized.
     const {innerHeight, innerWidth, rowHeight} = getDimensions(page, opts);
 
-    const content_children = [...content.children];
+    const content_children: HTMLElement[] = [...content.children].reverse();
 
     const page_content: any[] = [];
 
@@ -240,83 +240,105 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     const container = document.createElement("div");
     container.style.height = 'inheirit';
     page.appendChild(container);
-    let used_height = 0
-    content_children.forEach((child, idx) => {
 
-        const inner_content = child.cloneNode();
+    function cloneChild(child: HTMLElement) {
+        const inner_content = child.cloneNode() as HTMLElement;
         inner_content.innerHTML = child.innerHTML;
 
         inner_content.style.lineHeight = opts.lineHeight;
         inner_content.style.fontSize = opts.fontSize;
+        return inner_content;
+    }
 
+    function extractTextNodes(inner_content: HTMLElement) {
+        const first_child = inner_content.firstChild as HTMLElement;
+        const partial_content = inner_content.cloneNode() as HTMLElement;
+        partial_content.style.lineHeight = opts.lineHeight;
+        partial_content.style.fontSize = opts.fontSize;
+        partial_content.innerText = "";
+        return {first_child, partial_content};
+    }
+
+    function splitTextIntoRemainingSpace(words: string[], partial_content: HTMLElement) {
+
+        container.appendChild(partial_content);
+        partial_content.innerText += words[0];
+        let partial_height = partial_content.scrollHeight;
         const remaining_height = innerHeight - used_height;
+        let i = 0;
+        while (remaining_height - partial_height >= rowHeight) {
+            i++;
+            partial_content.innerText += " " + words[i];
+            partial_height = partial_content.scrollHeight;
+        }
+
+        container.removeChild(partial_content);
+
+        if (i == 0) {
+            // Didn't manage to add the row, don't bother keeping it
+            return {
+                first: null,
+                rest: words.join(" ")
+            }
+        } else {
+            // TODO: Need to handle orphan words here too, but fine for now
+            return {
+                rest: words.splice(i - 1).join(" "),
+                first: words.join(" ")
+            }
+        }
+
+    }
+
+    let used_height = 0;
+    let done = false;
+    while (!done) {
+        // Fill Each Page
+        const inner_content = cloneChild(content_children.pop() as HTMLElement);
+
         // first, see if the whole node fits.
         container.appendChild(inner_content);
         const node_height = inner_content.scrollHeight;
 
-        if (node_height === 0) {
-            // Just ignore this one.
-            container.removeChild(inner_content);
-            return
-        }
-
-        if (remaining_height - node_height > rowHeight) {
-            // Will keep this node
+        if (innerHeight - used_height - node_height >= rowHeight) {
+            // This will fit
             used_height += node_height;
-            console.log(`Node: ${idx} Page: ${page_content.length} Remaining Rows: ${Math.floor(remaining_height / rowHeight)} Full Node Append`);
-            return
-        }
+            console.log(`Added ${node_height} to page ${page_content.length}`)
+        } else {
+            // Split the node
+            container.removeChild(inner_content);
+            const {first_child, partial_content} = extractTextNodes(inner_content);
 
-        // Overflow Occurred
-        container.removeChild(inner_content);
+            const words = first_child?.textContent?.trim().split(" ") || [];
+            const parts = splitTextIntoRemainingSpace(words, partial_content);
 
-        // At least one row remains
-        if (remaining_height - rowHeight > 1) {
-            console.log("Attempt to break paragraph!")
-            console.log(`Node: ${idx} Page: ${page_content.length} Remaining Rows: ${Math.floor(remaining_height / rowHeight)} `);
+            if (parts.first) {
+                partial_content.innerText = parts.first;
+                container.appendChild(partial_content);
 
-            const first = inner_content.firstChild;
-            const partial_content = inner_content.cloneNode();
-            partial_content.style.lineHeight = opts.lineHeight;
-            partial_content.style.fontSize = opts.fontSize;
-            partial_content.innerText = "";
-            container.appendChild(partial_content);
-            let partial_height = partial_content.scrollHeight;
+                console.log(`Added ${partial_content.scrollHeight} to page ${page_content.length} at the end`)
+            }
+            used_height = innerHeight;
 
-            if (first.nodeType === 3) {
-                const words = (first.textContent.split(" "))
-                partial_content.innerText += words[0];
-                partial_height = partial_content.scrollHeight;
-                console.log(`Partial Height After First Word added ${partial_height} vs ${rowHeight}`)
-                let i = 0;
-                while (remaining_height - partial_height >= rowHeight) {
-                    i++;
-                    partial_content.innerText += " " + words[i];
-                    partial_height = partial_content.scrollHeight;
-                }
+            if (parts.rest.length > 0) {
+                const nextContent = partial_content.cloneNode() as HTMLElement;
+                nextContent.innerText = parts.rest;
+                content_children.push(nextContent);
+                console.log(`Pushed remaining content to next page.`)
 
-                if (i == 0) {
-                    // Didn't manage to add the row, don't bother keeping it
-                    container.removeChild(partial_content)
-                } else {
-                    // TODO: Need to handle orphan words here too, but fine for now
-                    console.log(`Node: ${idx} Page: ${page_content.length} Added ${i - 1} Words!`);
-                    inner_content.innerText = words.splice(i - 1).join(" ");
-                }
-
-                partial_content.innerText = words.join(" ");
-            } else {
-                throw "Deep Nesting Not Implemented"
             }
         }
 
-        page_content.push([...(container.children)]);
+        if (innerHeight - used_height < rowHeight) {
+            // Page is full
+            page_content.push([...(container.children)]);
+            container.innerHTML = "";
+            console.log(`Page Added: ${page_content.length}`)
+            used_height = 0;
+        }
+        done = (content_children.length === 0);
 
-        container.innerHTML = "";
-        container.appendChild(inner_content);
-        console.log(`Node ${idx} Page:${page_content.length} Actual Height: ${inner_content.scrollHeight} Calculated Height: ${inner_content.getBoundingClientRect().height}`);
-        used_height = inner_content.scrollHeight;
-    })
+    }
 
     document.body.removeChild(page);
     return {
