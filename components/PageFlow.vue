@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {type PageFlowProps, type Flow} from "@/composables/usePageFlow";
 const uuid = useUUID();
-
+const {$logger} = useNuxtApp();
 const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
     ...DefaultOptions,
 });
@@ -31,7 +31,8 @@ const fontPixels = computed(() => flow.value.fontSize);
 onUpdated(() =>
     flow.value.content.forEach((page, pidx) =>
         page.forEach((block, bidx) =>
-            console.log(
+            $logger(
+                "site",
                 `Page ${pidx} Block ${bidx} : content: "${block.innerText}"`
             )
         )
@@ -95,5 +96,8 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
         font-size: v-bind(fontPixels);
         line-height: v-bind(lineHeight);
     }
+}
+.invisible {
+    display: none;
 }
 </style>

@@ -91,7 +91,7 @@ const scaleUnit = (param: string, scale: number) => {
 }
 
 const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowParameters => {
-    const opts = {...DefaultOptions, templateNode: undefined, ...partial_opts} as PageFlowParameters
+    const opts = {...DefaultOptions, ...partial_opts} as PageFlowParameters
     // Scale all params:
 
     opts.margin = scaleUnit(opts.margin, opts.scale);
@@ -223,7 +223,7 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
 * @param: options
 */
 export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowOptions>): Flow => {
-
+    const {$logger} = useNuxtApp();
     if (!content) {
         // well that was easy
         return {
@@ -234,7 +234,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             ...applyDefaultOptions(options)
         };
     }
-    console.log("Flowing at " + JSON.stringify(options));
+    $logger("pageflow", "Flowing at " + JSON.stringify(options));
 
     const opts = applyDefaultOptions(options);
 
@@ -254,7 +254,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     container.id = "flow-container"
     page.appendChild(container);
 
-    console.log(`Container Height: ${container.scrollHeight}`);
+    $logger("pageflow", `Container Height: ${container.scrollHeight}`);
 
     function extractTextNodes(inner_content: HTMLElement) {
         const first_child = inner_content.firstChild as HTMLElement;
@@ -277,7 +277,6 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
         const remaining_height = innerHeight - used_height;
         let i = 0;
         while (remaining_height >= partial_height) {
-            console.log(remaining_height - partial_height)
             i++;
             partial_content.innerText += " " + words[i];
             partial_height = partial_content.scrollHeight;
@@ -308,7 +307,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
         if (innerHeight - used_height - node_height > 0) {
             // This will fit
             used_height += node_height;
-            console.log(`Added ${node_height} to page ${page_content.length}`)
+            $logger("pageflow", `Added ${node_height} to page ${page_content.length}`)
         } else {
             // Split the node
             container.removeChild(inner_content);
@@ -322,7 +321,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
                 partial_content.innerText = parts.first;
                 container.appendChild(partial_content);
 
-                console.log(`Added ${partial_content.scrollHeight} of ${container.scrollHeight} to page ${page_content.length} at the end`);
+                $logger("pageflow", `Added ${partial_content.scrollHeight} of ${container.scrollHeight} to page ${page_content.length} at the end`);
 
                 used_height += partial_content.scrollHeight;
             }
@@ -333,7 +332,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
                 const nextContent = cloneChild(inner_content, opts);
                 nextContent.innerText = parts.rest;
                 content_children.push(nextContent);
-                console.log(`Pushed remaining content to next page.`)
+                $logger("pageflow", `Pushed remaining content to next page.`)
             }
         }
 
@@ -341,10 +340,10 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
         if (innerHeight - used_height < rowHeight || done || force_page) {
             // Page is full
-            console.log(`Finalized page: Remaining rows: ${Math.floor((innerHeight - used_height) / rowHeight)}`)
+            $logger("pageflow", `Finalized page: Remaining rows: ${Math.floor((innerHeight - used_height) / rowHeight)}`)
             page_content.push([...(container.children)]);
             container.innerHTML = "";
-            console.log(`Page Added: ${page_content.length}`)
+            $logger("pageflow", `Page Added: ${page_content.length}`)
             used_height = 0;
         }
     }

@@ -18,4 +18,9 @@ export default defineNuxtConfig({
       },
     },
   },
+  runtimeConfig: {
+    public: {
+      loggerIds: (process.env.LOGGER_IDS).split(",") as string[]
+    }
+  }
 })
