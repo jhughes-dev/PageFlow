@@ -42,9 +42,11 @@ const content = [
                 this, to distribute text over fixed size "pages".
             </p>
             <p>For example, this text is split into ...</p>
-            <div class="full-content">{{ content }}</div>
-            <p>... These pages.</p>
-            <PageFlow height="3in" width="2in" margin="1rem" class="flex-row">
+            <div class="full-content">
+                <p>{{ content }}</p>
+            </div>
+            <p>... These 3in by 2in pages.</p>
+            <PageFlow height="3in" width="2in" margin="1em" class="flex-row">
                 <p>{{ content }}</p>
             </PageFlow>
             <p>
@@ -86,11 +88,6 @@ const content = [
     box-shadow: 0 0 10pt rgba(0, 0, 0, 1);
     border-radius: 10pt;
     background: rgba(0, 0, 0, 0.8);
-}
-
-p {
-    text-indent: 3rem;
-    margin: 1rem 0;
 }
 
 .full-content {

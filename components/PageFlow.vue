@@ -19,6 +19,15 @@ const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
 
 const lineHeight = computed(() => flow.value.lineHeight);
 const fontPixels = computed(() => flow.value.fontSize);
+onUpdated(() =>
+    flow.value.content.forEach((page, pidx) =>
+        page.forEach((block, bidx) =>
+            console.log(
+                `Page ${pidx} Block ${bidx} : content: "${block.innerText}"`
+            )
+        )
+    )
+);
 </script>
 
 <template>

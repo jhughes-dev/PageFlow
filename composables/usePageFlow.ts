@@ -180,6 +180,14 @@ function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
     page.style.minWidth = `${w}px`;
 }
 
+function cloneChild(child: HTMLElement, opts: PageFlowParameters): HTMLElement {
+    const clone = child.cloneNode() as HTMLElement;
+    clone.innerHTML = child.innerHTML;
+    clone.style.lineHeight = opts.lineHeight;
+    clone.style.fontSize = opts.fontSize;
+    return clone;
+}
+
 function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeight: number, innerWidth: number, rowHeight: number} {
     // Take the external page, and fill it with a div that's 100% width and width.
     const interior_area = document.createElement('div');
@@ -238,16 +246,12 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
 
     const container = document.createElement("div");
-    container.style.height = 'inheirit';
+    container.style.boxSizing = "content-box"
+    container.style.height = innerHeight + 'px'
+    container.id = "flow-container"
     page.appendChild(container);
 
-    function cloneChild(child: HTMLElement): HTMLElement {
-        const clone = child.cloneNode() as HTMLElement;
-        clone.innerHTML = child.innerHTML;
-        clone.style.lineHeight = opts.lineHeight;
-        clone.style.fontSize = opts.fontSize;
-        return clone;
-    }
+    console.log(`Container Height: ${container.scrollHeight}`);
 
     function extractTextNodes(inner_content: HTMLElement) {
         const first_child = inner_content.firstChild as HTMLElement;
@@ -258,9 +262,10 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
     function splitTextIntoRemainingSpace(words: string[], inner_content: HTMLElement) {
 
-        const partial_content = cloneChild(inner_content) as HTMLElement;
-        partial_content.style.lineHeight = opts.lineHeight;
-        partial_content.style.fontSize = opts.fontSize;
+        const partial_content = cloneChild(inner_content, opts) as HTMLElement;
+        partial_content.style.paddingBottom = '0';
+        partial_content.style.marginBottom = '0';
+        partial_content.style.boxSizing = "content-box"
         partial_content.innerText = "";
 
         container.appendChild(partial_content);
@@ -268,7 +273,8 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
         let partial_height = partial_content.scrollHeight;
         const remaining_height = innerHeight - used_height;
         let i = 0;
-        while (remaining_height - partial_height >= rowHeight) {
+        while (remaining_height >= partial_height) {
+            console.log(remaining_height - partial_height)
             i++;
             partial_content.innerText += " " + words[i];
             partial_height = partial_content.scrollHeight;
@@ -284,16 +290,19 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     }
 
     let used_height = 0;
-    let done = false;
+    let done = content_children.length === 0;
+
     while (!done) {
         // Fill Each Page
-        const inner_content = cloneChild(content_children.pop() as HTMLElement);
+        let force_page = false;
+        const inner_content = cloneChild(content_children.pop() as HTMLElement, opts);
 
         // first, see if the whole node fits.
         container.appendChild(inner_content);
+
         const node_height = inner_content.scrollHeight;
 
-        if (innerHeight - used_height - node_height >= rowHeight) {
+        if (innerHeight - used_height - node_height > 0) {
             // This will fit
             used_height += node_height;
             console.log(`Added ${node_height} to page ${page_content.length}`)
@@ -304,16 +313,21 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             const parts = splitTextIntoRemainingSpace(words, inner_content);
 
             if (parts.first) {
-                const partial_content = cloneChild(inner_content);
+                const partial_content = cloneChild(inner_content, opts);
                 partial_content.style.paddingBottom = '0';
+                partial_content.style.marginBottom = '0';
                 partial_content.innerText = parts.first;
                 container.appendChild(partial_content);
-                console.log(`Added ${partial_content.scrollHeight} to page ${page_content.length} at the end`);
+
+                console.log(`Added ${partial_content.scrollHeight} of ${container.scrollHeight} to page ${page_content.length} at the end`);
+
+                used_height += partial_content.scrollHeight;
             }
-            used_height = innerHeight;
+
+            force_page = true;
 
             if (parts.rest.length > 0) {
-                const nextContent = cloneChild(inner_content);
+                const nextContent = cloneChild(inner_content, opts);
                 nextContent.innerText = parts.rest;
                 content_children.push(nextContent);
                 console.log(`Pushed remaining content to next page.`)
@@ -322,8 +336,9 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
         done = (content_children.length === 0);
 
-        if (innerHeight - used_height < rowHeight || done) {
+        if (innerHeight - used_height < rowHeight || done || force_page) {
             // Page is full
+            console.log(`Finalized page: Remaining rows: ${Math.floor((innerHeight - used_height) / rowHeight)}`)
             page_content.push([...(container.children)]);
             container.innerHTML = "";
             console.log(`Page Added: ${page_content.length}`)
