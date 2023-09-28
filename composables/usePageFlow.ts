@@ -135,6 +135,17 @@ const createPage = (opts: PageFlowParameters) => {
     return page;
 }
 
+const getNumericStyleValue = (style: CSSStyleDeclaration, property: string) => splitUnits(style.getPropertyValue(property)).value;
+
+function getPaddingValues(style: CSSStyleDeclaration) {
+    return {
+        left: getNumericStyleValue(style, 'padding-left'),
+        right: getNumericStyleValue(style, 'padding-right'),
+        top: getNumericStyleValue(style, 'padding-top'),
+        bottom: getNumericStyleValue(style, 'padding-bottom')
+    };
+}
+
 function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
     // TODO: Find a better way to do this
 
@@ -160,15 +171,10 @@ function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
 
     const style = window.getComputedStyle(page, null);
 
-    const padding = {
-        left: splitUnits(style.getPropertyValue('padding-left')).value,
-        right: splitUnits(style.getPropertyValue('padding-right')).value,
-        top: splitUnits(style.getPropertyValue('padding-top')).value,
-        bottom: splitUnits(style.getPropertyValue('padding-bottom')).value
-    };
+    const padding = getPaddingValues(style);
 
-    const h = splitUnits(style.getPropertyValue('height')).value - padding.top - padding.bottom;
-    const w = splitUnits(style.getPropertyValue('width')).value - padding.left - padding.right;
+    const h = getNumericStyleValue(style, 'height') - padding.top - padding.bottom;
+    const w = getNumericStyleValue(style, 'width') - padding.left - padding.right;
 
     // Why everyone gets so frustrated with CSS... is it
     // too much to ask to be able to specify exact sizes
@@ -183,12 +189,23 @@ function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
     page.style.minWidth = `${w}px`;
 }
 
-function cloneElement(child: HTMLElement, opts: PageFlowParameters): HTMLElement {
-    const clone = child.cloneNode() as HTMLElement;
-    clone.innerHTML = child.innerHTML;
-    clone.style.lineHeight = opts.lineHeight;
-    clone.style.fontSize = opts.fontSize;
+function cloneElement(original: HTMLElement): HTMLElement {
+    const clone = original.cloneNode() as HTMLElement;
+    clone.innerHTML = original.innerHTML;
     return clone;
+}
+
+function getRowHeight(container: HTMLElement, opts: PageFlowParameters) {
+    const text = document.createElement('p');
+    text.style.boxSizing = "content-box";
+    text.style.fontSize = opts.fontSize;
+    text.style.lineHeight = opts.lineHeight;
+    // Now insert text into the div, and see what it's height becomes
+    text.innerText = "A";
+    container.insertBefore(text, null);
+
+    const rowHeight = text.scrollHeight;
+    return rowHeight;
 }
 
 function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeight: number, innerWidth: number, rowHeight: number} {
@@ -204,18 +221,17 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
     // Once sized, the interior_area gives the interior dimensions of the page.
     const innerHeight = interior_area.scrollHeight;
     const innerWidth = interior_area.scrollWidth;
+    const rowHeight = getRowHeight(interior_area, opts);
 
-    const text = document.createElement('p');
-    text.style.boxSizing = "content-box"
-    text.style.fontSize = opts.fontSize;
-    text.style.lineHeight = opts.lineHeight;
-    // Now insert text into the div, and see what it's height becomes
-    text.innerText = "A";
-    interior_area.insertBefore(text, null);
-
-    const rowHeight = text.scrollHeight;
     page.removeChild(interior_area);
     return {innerHeight, innerWidth, rowHeight};
+
+
+}
+
+function extractWords(inner_content: HTMLElement) {
+    // This is not exactly correct, but it will do for now.
+    return inner_content?.firstChild?.textContent?.trim().split(" ") || [];;
 }
 
 /*
@@ -223,7 +239,10 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
 * @param: options
 */
 export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowOptions>): Flow => {
+
+    // TODO: Will need to get this out of Nuxt eventually, but this is easier for now. Probably won't use logging in the future
     const {$logger} = useNuxtApp();
+
     if (!content) {
         // well that was easy
         return {
@@ -234,11 +253,13 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             ...applyDefaultOptions(options)
         };
     }
+
     $logger("pageflow", "Flowing at " + JSON.stringify(options));
 
     const opts = applyDefaultOptions(options);
 
-    const page = createPage(opts);
+    // If we're using tghe pageTemplate, we'll ignore the height/width/margin
+    const page = (opts.pageTemplate) ? cloneElement(opts.pageTemplate) : createPage(opts);
 
     // page needs to be in the document before it will get sized.
     const {innerHeight, innerWidth, rowHeight} = getDimensions(page, opts);
@@ -256,16 +277,9 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
     $logger("pageflow", `Container Height: ${container.scrollHeight}`);
 
-    function extractTextNodes(inner_content: HTMLElement) {
-        const first_child = inner_content.firstChild as HTMLElement;
-
-        const words = first_child?.textContent?.trim().split(" ") || [];
-        return words;
-    }
-
     function splitTextIntoRemainingSpace(words: string[], inner_content: HTMLElement) {
 
-        const partial_content = cloneElement(inner_content, opts) as HTMLElement;
+        const partial_content = cloneElement(inner_content) as HTMLElement;
         partial_content.style.paddingBottom = '0';
         partial_content.style.marginBottom = '0';
         partial_content.style.boxSizing = "content-box"
@@ -281,7 +295,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             partial_content.innerText += " " + words[i];
             partial_height = partial_content.scrollHeight;
         }
-
+        $logger("pageflow", `Split Content Height: ${partial_height}, ${i - 1} words`);
         container.removeChild(partial_content);
 
         // i==0, one word pushed us over.
@@ -291,66 +305,76 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
         return {first, rest}
     }
 
+
+    function breakNodeOnWords(inner_content: HTMLElement) {
+        container.removeChild(inner_content);
+        const words = extractWords(inner_content);
+        const parts = splitTextIntoRemainingSpace(words, inner_content);
+
+        if (parts.first) {
+            const partial_content = cloneElement(inner_content);
+            partial_content.style.paddingBottom = '0';
+            partial_content.style.marginBottom = '0';
+            partial_content.innerText = parts.first;
+            container.appendChild(partial_content);
+
+            $logger("pageflow", `Added ${partial_content.scrollHeight} of ${container.scrollHeight} to page ${page_content.length} at the end`);
+
+            used_height += partial_content.scrollHeight;
+        }
+
+        if (parts.rest.length > 0) {
+            const nextContent = cloneElement(inner_content);
+            nextContent.innerText = parts.rest;
+            content_children.push(nextContent);
+            $logger("pageflow", `Pushed remaining content to next page.`);
+        }
+
+    }
+
+    function startNewPage() {
+        $logger("pageflow", `Finalized page: Remaining rows: ${Math.floor((innerHeight - used_height) / rowHeight)}`);
+        pages.push(cloneElement(page));
+        page_content.push([...(container.children)]);
+        container.innerHTML = "";
+        $logger("pageflow", `Page Added: ${page_content.length}`);
+        used_height = 0;
+    }
+
     let used_height = 0;
     let done = content_children.length === 0;
-
+    const pages: HTMLElement[] = [];
     while (!done) {
         // Fill Each Page
-        let force_page = false;
-        const inner_content = cloneElement(content_children.pop() as HTMLElement, opts);
+        const inner_content = cloneElement(content_children.pop() as HTMLElement);
 
         // first, see if the whole node fits.
         container.appendChild(inner_content);
 
         const node_height = inner_content.scrollHeight;
 
-        if (innerHeight - used_height - node_height > 0) {
-            // This will fit
+        // The entire block fit on the page.
+        const fit_on_page = (innerHeight - used_height - node_height > 0);
+
+        if (fit_on_page) {
             used_height += node_height;
-            $logger("pageflow", `Added ${node_height} to page ${page_content.length}`)
+            $logger("pageflow", `Added ${node_height} to page ${page_content.length}`);
         } else {
-            // Split the node
-            container.removeChild(inner_content);
-            const words = extractTextNodes(inner_content);
-            const parts = splitTextIntoRemainingSpace(words, inner_content);
-
-            if (parts.first) {
-                const partial_content = cloneElement(inner_content, opts);
-                partial_content.style.paddingBottom = '0';
-                partial_content.style.marginBottom = '0';
-                partial_content.innerText = parts.first;
-                container.appendChild(partial_content);
-
-                $logger("pageflow", `Added ${partial_content.scrollHeight} of ${container.scrollHeight} to page ${page_content.length} at the end`);
-
-                used_height += partial_content.scrollHeight;
-            }
-
-            force_page = true;
-
-            if (parts.rest.length > 0) {
-                const nextContent = cloneElement(inner_content, opts);
-                nextContent.innerText = parts.rest;
-                content_children.push(nextContent);
-                $logger("pageflow", `Pushed remaining content to next page.`)
-            }
+            breakNodeOnWords(inner_content);
         }
 
         done = (content_children.length === 0);
 
-        if (innerHeight - used_height < rowHeight || done || force_page) {
+        if (innerHeight - used_height < rowHeight || done || !fit_on_page) {
             // Page is full
-            $logger("pageflow", `Finalized page: Remaining rows: ${Math.floor((innerHeight - used_height) / rowHeight)}`)
-            page_content.push([...(container.children)]);
-            container.innerHTML = "";
-            $logger("pageflow", `Page Added: ${page_content.length}`)
-            used_height = 0;
+            startNewPage();
         }
     }
 
     document.body.removeChild(page);
     return {
         content: page_content,
+        pages,
         innerHeight, innerWidth, rowHeight,
         ...opts
     };
