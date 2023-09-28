@@ -8,9 +8,9 @@ export type PageFlowProps = {
     scale: number;
 };
 
-
 const INCH_TO_PT = 72;
 const INCH_TO_PX = 96;
+
 type PageFlowOptions = PageFlowProps & {
     pageTemplate?: HTMLElement
     contentTemplate?: HTMLElement
@@ -183,7 +183,7 @@ function adjustMargins(page: HTMLDivElement, opts: PageFlowParameters) {
     page.style.minWidth = `${w}px`;
 }
 
-function cloneChild(child: HTMLElement, opts: PageFlowParameters): HTMLElement {
+function cloneElement(child: HTMLElement, opts: PageFlowParameters): HTMLElement {
     const clone = child.cloneNode() as HTMLElement;
     clone.innerHTML = child.innerHTML;
     clone.style.lineHeight = opts.lineHeight;
@@ -265,7 +265,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
 
     function splitTextIntoRemainingSpace(words: string[], inner_content: HTMLElement) {
 
-        const partial_content = cloneChild(inner_content, opts) as HTMLElement;
+        const partial_content = cloneElement(inner_content, opts) as HTMLElement;
         partial_content.style.paddingBottom = '0';
         partial_content.style.marginBottom = '0';
         partial_content.style.boxSizing = "content-box"
@@ -297,7 +297,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
     while (!done) {
         // Fill Each Page
         let force_page = false;
-        const inner_content = cloneChild(content_children.pop() as HTMLElement, opts);
+        const inner_content = cloneElement(content_children.pop() as HTMLElement, opts);
 
         // first, see if the whole node fits.
         container.appendChild(inner_content);
@@ -315,7 +315,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             const parts = splitTextIntoRemainingSpace(words, inner_content);
 
             if (parts.first) {
-                const partial_content = cloneChild(inner_content, opts);
+                const partial_content = cloneElement(inner_content, opts);
                 partial_content.style.paddingBottom = '0';
                 partial_content.style.marginBottom = '0';
                 partial_content.innerText = parts.first;
@@ -329,7 +329,7 @@ export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowO
             force_page = true;
 
             if (parts.rest.length > 0) {
-                const nextContent = cloneChild(inner_content, opts);
+                const nextContent = cloneElement(inner_content, opts);
                 nextContent.innerText = parts.rest;
                 content_children.push(nextContent);
                 $logger("pageflow", `Pushed remaining content to next page.`)
