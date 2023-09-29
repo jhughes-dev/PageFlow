@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import {type PageFlowProps, type Flow} from "@/composables/usePageFlow";
+import useHTMLRef from "~/composables/useHTMLRef";
+
 const uuid = useUUID();
 const {$logger} = useNuxtApp();
 const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
     ...DefaultOptions,
 });
 
-const content = ref(null);
-const page_template = ref<Ref<HTMLElement>>({});
-const content_template = ref<Ref<HTMLElement>>({});
+const slots = useHTMLRef();
+const content = useHTMLRef();
+const pageTemplate = useHTMLRef();
+const contentTemplate = useHTMLRef();
 
 const flow = computed<Flow>(() => {
-    const pageTemplate =
-        (page_template.value?.firstChild as HTMLElement) ?? undefined;
-    const contentTemplate =
-        (content_template.value?.firstChild as HTMLElement) ?? undefined;
-
-    return pageFlow(content?.value, {...props, pageTemplate, contentTemplate});
+    return pageFlow(content.value, {
+        ...props,
+        pageTemplate: pageTemplate.value,
+        contentTemplate: contentTemplate.value,
+    });
 });
 
-// Cannot use this in v-bind in css directly from 'flow'
 const scaledMargin = computed(() => flow.value.margin);
 const scaledHeight = computed(() => flow.value.height);
 const scaledWidth = computed(() => flow.value.width);
@@ -28,46 +29,49 @@ const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
 const lineHeight = computed(() => flow.value.lineHeight);
 const fontPixels = computed(() => flow.value.fontSize);
 
+onMounted(() => {
+    const instance = getCurrentInstance();
+    const children = [...(slots?.value?.children ?? [])];
+    const used_slots = new Set(Object.keys(instance?.slots ?? {}));
+    if (used_slots.has("page_template")) {
+        pageTemplate.value = children[0];
+        slots?.value?.removeChild(children[0]);
+        children.splice(0, 1);
+    }
+
+    if (used_slots.has("content_template")) {
+        contentTemplate.value = children[0];
+        slots?.value?.removeChild(children[0]);
+        children.splice(0, 1);
+    }
+
+    content.value = slots.value;
+});
+
 onUpdated(() =>
-    flow.value.content.forEach((page, pidx) =>
-        page.forEach((block, bidx) =>
-            $logger(
-                "site",
-                `Page ${pidx} Block ${bidx} : content: "${block.innerText}"`
-            )
-        )
+    flow.value.pages.forEach((page, pidx) =>
+        $logger("site", `Page ${pidx} content: "${page.innerText}"`)
     )
 );
 </script>
 
 <template>
-    <div v-bind="$attrs" class="flow-box">
-        <div
+    <div v-bind="$attrs">
+        <PageFlowPage
+            v-for="(page, idx) in flow.pages"
             :id="`page-${idx}:${uuid}`"
-            class="page"
-            v-for="(page, idx) in flow.content"
             :key="idx"
-        >
-            <p
-                v-for="elem in page"
-                class="content"
-                :id="`content-${idx}-${uuid}`"
-            >
-                {{ elem.innerHTML }}
-            </p>
-        </div>
+            :content="page"
+        />
     </div>
+
     <!-- Content is stored here -->
-    <div ref="content" class="invisible"><slot /></div>
-    <!-- Pass a custom page via template -->
-    <div class="invisible">
+    <div ref="slots" class="invisible">
         <slot name="page_template" />
-    </div>
-    <!-- Pass a template for the content, props passed have precedence -->
-    <!-- If multiples are passed in, should look over them-->
-    <div class="invisible">
         <slot name="content_template" />
+        <slot />
     </div>
+    <!-- Pass a custom page via template -->
 </template>
 
 <style scoped lang="scss">

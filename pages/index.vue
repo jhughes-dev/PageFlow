@@ -45,8 +45,11 @@ const content = [
                 <p>{{ content }}</p>
             </div>
             <p>... is split into these 3in by 2in pages.</p>
-            <PageFlow height="3in" width="2in" margin="1rem">
+            <PageFlow height="3in" width="2in" margin="1rem" class="flex-row">
                 <p>{{ content }}</p>
+                <template #page_template>
+                    <div class="page_template"></div>
+                </template>
             </PageFlow>
             <p>
                 PageFlow splits text across distinct, disconnected Nodes instead
@@ -62,8 +65,8 @@ const content = [
 .flex-row {
     box-sizing: content-box;
     display: flex;
-    margin: 0 auto;
-    padding: 3em;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 .page-flow {
     max-width: 75vw;
@@ -95,5 +98,11 @@ const content = [
     padding: 3em;
     background-color: white;
     color: black;
+}
+
+.page_template {
+    background-color: white;
+    color: black;
+    margin: 1rem;
 }
 </style>
