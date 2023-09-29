@@ -33,16 +33,21 @@ onMounted(() => {
     const instance = getCurrentInstance();
     const children = [...(slots?.value?.children ?? [])];
     const used_slots = new Set(Object.keys(instance?.slots ?? {}));
+
     if (used_slots.has("page_template")) {
         pageTemplate.value = children[0];
         slots?.value?.removeChild(children[0]);
         children.splice(0, 1);
+    } else {
+        pageTemplate.value = document.createElement("div");
     }
 
     if (used_slots.has("content_template")) {
         contentTemplate.value = children[0];
         slots?.value?.removeChild(children[0]);
         children.splice(0, 1);
+    } else {
+        contentTemplate.value = document.createElement("p");
     }
 
     content.value = slots.value;
@@ -62,6 +67,7 @@ onUpdated(() =>
             :id="`page-${idx}:${uuid}`"
             :key="idx"
             :content="page"
+            class="page"
         />
     </div>
 
@@ -77,14 +83,10 @@ onUpdated(() =>
 <style scoped lang="scss">
 $adjusted-height: calc(v-bind(scaledHeight) - calc(2 * v-bind(scaledMargin)));
 $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
-.flow-box {
-    display: flex;
-    flex-wrap: wrap;
-}
-.page {
-    box-sizing: content-box;
-    text-rendering: geometricPrecision;
 
+.page {
+    color: black;
+    background-color: white;
     min-height: $adjusted-height;
     max-height: $adjusted-height;
 
@@ -93,8 +95,7 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
 
     padding: v-bind(scaledMargin);
     margin: v-bind(interiorGap);
-    color: black;
-    background-color: white;
+
     line-height: v-bind(lineHeight);
     .content {
         font-size: v-bind(fontPixels);

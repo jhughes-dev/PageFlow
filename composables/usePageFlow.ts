@@ -226,7 +226,7 @@ function extractWords(inner_content: HTMLElement) {
 * @param: content - The elements to be paginated
 * @param: options
 */
-export const pageFlow = (content: HTMLElement | null, options: Partial<PageFlowOptions>): Flow => {
+export const pageFlow = (content: HTMLElement | undefined, options: Partial<PageFlowOptions>): Flow => {
 
     // TODO: Will need to get this out of Nuxt eventually, but this is easier for now. Probably won't use logging in the future
     const {$logger} = useNuxtApp();
