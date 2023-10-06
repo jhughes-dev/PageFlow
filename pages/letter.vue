@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const size = ref(12);
-const lineHeight = ref(1);
+const lineHeight = ref(1.15);
 const scale = ref(1);
 </script>
 
@@ -33,7 +33,11 @@ const scale = ref(1);
                 ></v-slider>
             </v-container>
         </v-navigation-drawer>
-
+        <div class="reference_page">
+            <div class="reference_content">
+                This is what the page should look like.
+            </div>
+        </div>
         <PageFlow
             width="8.5in"
             height="11in"
@@ -72,5 +76,30 @@ const scale = ref(1);
 .slider-label {
     min-width: 16ch;
     max-width: 16ch;
+}
+$interior-width: calc(8.5in - 2in);
+$interior-height: calc(11in - 2in);
+.reference_page {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid red;
+
+    min-height: 11in;
+    max-height: 11in;
+    height: 11in;
+    width: 8.5in;
+    min-width: 8.5in;
+    max-width: 8.5in;
+    padding: 1in;
+    .reference_content {
+        border: 1px solid yellow;
+        min-height: $interior-height;
+        max-height: $interior-height;
+        height: $interior-height;
+        width: $interior-width;
+        min-width: $interior-width;
+        max-width: $interior-width;
+        font-size: v-bind(size);
+    }
+    margin: 16px;
 }
 </style>

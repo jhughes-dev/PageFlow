@@ -22,7 +22,7 @@ export const DefaultOptions: Partial<PageFlowOptions> = {
     width: "100%",
     margin: "1rem",
     fontSize: "12pt",
-    lineHeight: 1.5,
+    lineHeight: 1.15,
     scale: 1,
 }
 
@@ -347,7 +347,6 @@ export const pageFlow = (content: HTMLElement, options: Partial<PageFlowOptions>
 
 export function defaultPageFromProps(opts: PageFlowProps) {
     const page = document.createElement("div");
-    page.style.boxSizing = "content-box";
     page.style.height = opts.height;
     page.style.minHeight = opts.height;
     page.style.maxHeight = opts.height;
@@ -360,5 +359,22 @@ export function defaultPageFromProps(opts: PageFlowProps) {
     page.style.background = "white";
     page.style.color = "black";
     page.style.margin = "1rem"
+    return page;
+}
+
+export function defaultContainerFromProps(opts: PageFlowProps) {
+    const page = document.createElement("div");
+    page.style.height = opts.height;
+    page.style.minHeight = opts.height;
+    page.style.maxHeight = opts.height;
+
+    page.style.width = opts.width;
+    page.style.minWidth = opts.width;
+    page.style.maxWidth = opts.width;
+
+    page.style.fontSize = opts.fontSize;
+    page.style.lineHeight = String(opts.lineHeight);
+    page.style.background = "black";
+    page.style.color = "white";
     return page;
 }

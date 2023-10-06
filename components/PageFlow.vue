@@ -8,19 +8,29 @@ const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
     ...DefaultOptions,
 });
 
+let containerDefaultDisplay = "";
+
 const slots = useHTMLRef();
 const content = useHTMLRef();
 const pageTemplate = useHTMLRef();
 const contentTemplate = useHTMLRef();
-const container = useHTMLRef();
+
+const pageDefault = computed(() => defaultPageFromProps(props));
+const container = computed(() => {
+    const instance = getCurrentInstance();
+    if (instance) {
+        return instance.subTree.children[1].el;
+    }
+});
 
 const flow = computed<Flow>(() => {
-    if (content.value) {
+    if (content.value && container.value) {
+        container.value.style.display = containerDefaultDisplay;
         return pageFlow(content.value, {
             ...props,
-            page: pageTemplate.value ?? defaultPageFromProps(props),
-            content: contentTemplate.value,
+            page: pageTemplate.value ?? pageDefault.value,
             container: container.value,
+            content: contentTemplate.value,
         });
     }
     return {} as Flow;
@@ -34,14 +44,13 @@ const interiorGap = computed(
 );
 
 const lineHeight = computed(() => flow.value?.lineHeight ?? props?.lineHeight);
-const fontPixels = computed(() => flow.value?.fontSize ?? props.fontSize);
 
 const default_style = computed(() => (pageTemplate.value ? "" : "page"));
 onMounted(() => {
     const instance = getCurrentInstance();
     const children = [...(slots?.value?.children ?? [])];
     const used_slots = new Set(Object.keys(instance?.slots ?? {}));
-
+    containerDefaultDisplay = container.value?.style?.display ?? "unset";
     if (used_slots.has("page_template")) {
         pageTemplate.value = children[0];
         slots?.value?.removeChild(children[0]);
@@ -76,7 +85,7 @@ onUpdated(() =>
             v-class="default_style"
         />
     </div>
-    <div v-bind="$attrs" ref="container" class="inner-container" />
+    <DefaultPage v-bind="props" class="inner-container" />
     <div ref="slots" class="invisible">
         <slot name="page_template" />
         <slot name="content_template" />
@@ -112,7 +121,7 @@ $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
 
     line-height: v-bind(lineHeight);
     .content {
-        font-size: v-bind(fontPixels);
+        font-size: v-bind(fontSize);
         line-height: v-bind(lineHeight);
     }
 }
