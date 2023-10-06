@@ -12,23 +12,31 @@ const slots = useHTMLRef();
 const content = useHTMLRef();
 const pageTemplate = useHTMLRef();
 const contentTemplate = useHTMLRef();
+const container = useHTMLRef();
 
 const flow = computed<Flow>(() => {
-    return pageFlow(content.value, {
-        ...props,
-        pageTemplate: pageTemplate.value,
-        contentTemplate: contentTemplate.value,
-    });
+    if (content.value) {
+        return pageFlow(content.value, {
+            ...props,
+            page: pageTemplate.value ?? defaultPageFromProps(props),
+            content: contentTemplate.value,
+            container: container.value,
+        });
+    }
+    return {} as Flow;
 });
 
-const scaledMargin = computed(() => flow.value.margin);
-const scaledHeight = computed(() => flow.value.height);
-const scaledWidth = computed(() => flow.value.width);
-const interiorGap = computed(() => `${0.5 * flow.value.scale}in`);
+const scaledMargin = computed(() => flow.value?.margin ?? props.margin);
+const scaledHeight = computed(() => flow.value?.height ?? props.height);
+const scaledWidth = computed(() => flow.value.width ?? props.width);
+const interiorGap = computed(
+    () => `${0.5 * (flow.value?.scale ?? props.scale)}in`
+);
 
-const lineHeight = computed(() => flow.value.lineHeight);
-const fontPixels = computed(() => flow.value.fontSize);
+const lineHeight = computed(() => flow.value?.lineHeight ?? props?.lineHeight);
+const fontPixels = computed(() => flow.value?.fontSize ?? props.fontSize);
 
+const default_style = computed(() => (pageTemplate.value ? "" : "page"));
 onMounted(() => {
     const instance = getCurrentInstance();
     const children = [...(slots?.value?.children ?? [])];
@@ -38,8 +46,6 @@ onMounted(() => {
         pageTemplate.value = children[0];
         slots?.value?.removeChild(children[0]);
         children.splice(0, 1);
-    } else {
-        pageTemplate.value = document.createElement("div");
     }
 
     if (used_slots.has("content_template")) {
@@ -54,7 +60,7 @@ onMounted(() => {
 });
 
 onUpdated(() =>
-    flow.value.pages.forEach((page, pidx) =>
+    flow?.value?.pages.forEach((page, pidx) =>
         $logger("site", `Page ${pidx} content: "${page.innerText}"`)
     )
 );
@@ -67,23 +73,31 @@ onUpdated(() =>
             :id="`page-${idx}:${uuid}`"
             :key="idx"
             :content="page"
-            class="page"
+            v-class="default_style"
         />
     </div>
-
-    <!-- Content is stored here -->
+    <div v-bind="$attrs" ref="container" class="inner-container" />
     <div ref="slots" class="invisible">
         <slot name="page_template" />
         <slot name="content_template" />
         <slot />
     </div>
-    <!-- Pass a custom page via template -->
 </template>
 
 <style scoped lang="scss">
 $adjusted-height: calc(v-bind(scaledHeight) - calc(2 * v-bind(scaledMargin)));
 $adjusted-width: calc(v-bind(scaledWidth) - calc(2 * v-bind(scaledMargin)));
 
+.inner-container {
+    min-height: v-bind(height);
+    max-height: v-bind(height);
+
+    min-width: v-bind(width);
+    max-width: v-bind(width);
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
 .page {
     color: black;
     background-color: white;

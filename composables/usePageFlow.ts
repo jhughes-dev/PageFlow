@@ -12,9 +12,11 @@ const INCH_TO_PT = 72;
 const INCH_TO_PX = 96;
 
 type PageFlowOptions = PageFlowProps & {
-    pageTemplate?: HTMLElement
-    contentTemplate?: HTMLElement
+    page?: HTMLElement
+    content?: HTMLElement
+    container?: HTMLElement
 }
+
 export const DefaultOptions: Partial<PageFlowOptions> = {
     height: "100%",
     width: "100%",
@@ -23,7 +25,6 @@ export const DefaultOptions: Partial<PageFlowOptions> = {
     lineHeight: 1.5,
     scale: 1,
 }
-
 
 export type Flow = {
     pages: HTMLElement[]
@@ -38,7 +39,6 @@ type NumberWithUnit = {
 };
 
 type PageFlowParameters = PageFlowOptions & {
-    fontPixels: number;
     lineHeight: string;
 };
 
@@ -55,34 +55,6 @@ function splitUnits(v: string): NumberWithUnit {
             unit: ""
         }
     }
-}
-
-const getFontPixelSize = ({fontSize, scale}: PageFlowOptions): number => {
-    let {value, unit} = splitUnits(fontSize)
-
-    if (typeof document !== "undefined") {
-        // If we have access to the document, we can get this exactly
-        const temp = document.createElement("div") as HTMLDivElement;
-        temp.style.fontSize = fontSize;
-        document.body.insertBefore(temp, null);
-        // This should always return pixels
-        const {value: v, unit: pixels} = splitUnits(window.getComputedStyle(temp, null).getPropertyValue('font-size'));
-        document.body.removeChild(temp);
-        console.assert(pixels === "px", `Expected "px" saw: ${pixels}`);
-        value = v;
-    } else {
-        // No document available, just assume defaults
-        if (unit === "pt") {
-            value = scale * INCH_TO_PX * value / INCH_TO_PT;
-        } else if (unit === "in") {
-            value = scale * INCH_TO_PX * value;
-        } else {
-            throw `Unimplemented unit: ${unit}. Expected 'pt','px', or 'in'.`
-        }
-    }
-
-    return value;
-
 }
 
 const scaleUnit = (param: string, scale: number) => {
@@ -104,14 +76,13 @@ const applyDefaultOptions = (partial_opts: Partial<PageFlowOptions>): PageFlowPa
         opts.lineHeight = scaleUnit(opts.lineHeight, opts.scale);
     }
     opts.fontSize = scaleUnit(opts.fontSize, opts.scale);
-    const fontPixels = getFontPixelSize({...opts});
-    return {...opts, fontPixels};
+
+    return opts;
 };
 
 const createPage = (opts: PageFlowParameters) => {
     const page = document.createElement("div") as HTMLDivElement;
     page.innerHTML = "";
-    page.id = "page";
 
     // (content.parentNode as HTMLElement).removeChild(content);
     // Not sure why, but without this, it basically ignores the min/max sizes.
@@ -121,6 +92,7 @@ const createPage = (opts: PageFlowParameters) => {
     page.style.padding = opts.margin;
     page.style.lineHeight = opts.lineHeight
     page.style.fontSize = opts.fontSize;
+    setExactWidthHeight(page, opts);
 
     return page;
 }
@@ -134,6 +106,16 @@ function getPaddingValues(style: CSSStyleDeclaration) {
         top: getNumericStyleValue(style, 'padding-top'),
         bottom: getNumericStyleValue(style, 'padding-bottom')
     };
+}
+
+function setExactWidthHeight(element: HTMLElement, opts: {width: string, height: string}) {
+    element.style.height = opts.height;
+    element.style.maxHeight = opts.height;
+    element.style.minHeight = opts.height;
+
+    element.style.width = opts.width;
+    element.style.maxWidth = opts.width;
+    element.style.minWidth = opts.width;
 }
 
 function adjustMargins(page: HTMLElement, opts: PageFlowParameters) {
@@ -151,13 +133,7 @@ function adjustMargins(page: HTMLElement, opts: PageFlowParameters) {
 
     // This is all to get the height with the internal
     // padding, just to remove the internal padding....
-    page.style.height = opts.height;
-    page.style.maxHeight = opts.height;
-    page.style.minHeight = opts.height;
-
-    page.style.width = opts.width;
-    page.style.maxWidth = opts.width;
-    page.style.minWidth = opts.width;
+    setExactWidthHeight(page, opts);
 
     const style = window.getComputedStyle(page, null);
 
@@ -170,13 +146,8 @@ function adjustMargins(page: HTMLElement, opts: PageFlowParameters) {
     // too much to ask to be able to specify exact sizes
     // and have those get respected. LOL
     // https://css-tricks.com/wp-content/uploads/2021/04/css-is-awesome.jpg
-    page.style.height = `${h}px`;
-    page.style.maxHeight = `${h}px`;
-    page.style.minHeight = `${h}px`;
 
-    page.style.width = `${w}px`;
-    page.style.maxWidth = `${w}px`;
-    page.style.minWidth = `${w}px`;
+    setExactWidthHeight(page, {width: `${w}px`, height: `${h}px`});
 }
 
 function cloneElement(original: HTMLElement): HTMLElement {
@@ -187,9 +158,6 @@ function cloneElement(original: HTMLElement): HTMLElement {
 
 function getRowHeight(container: HTMLElement, opts: PageFlowParameters) {
     const text = document.createElement('p');
-    text.style.boxSizing = "content-box";
-    text.style.fontSize = opts.fontSize;
-    text.style.lineHeight = opts.lineHeight;
     // Now insert text into the div, and see what it's height becomes
     text.innerText = "A";
     container.insertBefore(text, null);
@@ -213,6 +181,7 @@ function getDimensions(page: HTMLElement, opts: PageFlowParameters): {innerHeigh
     const rowHeight = getRowHeight(interior_area, opts);
 
     page.removeChild(interior_area);
+
     return {innerHeight, innerWidth, rowHeight};
 
 }
@@ -226,33 +195,33 @@ function extractWords(inner_content: HTMLElement) {
 * @param: content - The elements to be paginated
 * @param: options
 */
-export const pageFlow = (content: HTMLElement | undefined, options: Partial<PageFlowOptions>): Flow => {
+export const pageFlow = (content: HTMLElement, options: Partial<PageFlowOptions>): Flow => {
 
     // TODO: Will need to get this out of Nuxt eventually, but this is easier for now. Probably won't use logging in the future
     const {$logger} = useNuxtApp();
 
-    if (!content) {
-        // well that was easy
-        return {
-            pages: [] as HTMLElement[],
-            innerHeight: NaN,
-            innerWidth: NaN,
-            rowHeight: NaN,
-            ...applyDefaultOptions(options)
-        };
-    }
-
-    $logger("pageflow", "Flowing at " + JSON.stringify(options));
+    $logger("pageflow", "Flowing with " + JSON.stringify(options, null, 2));
 
     const opts = applyDefaultOptions(options);
 
-    // If we're using tghe pageTemplate, we'll ignore the height/width/margin
-    const page = (opts.pageTemplate) ? cloneElement(opts.pageTemplate) : createPage(opts);
-    document.body.appendChild(page);
-    // HTML/CSS pushed Margins out from the page, we want the other way around
-    adjustMargins(page, opts);
+    // If we're using tghe page, we'll ignore the height/width/margin
+    const page = (opts.page) ? cloneElement(opts.page) : createPage(opts);
+    page.appendChild(content);
+    // If we know where to put the stuff, put it there, otherwise tack it onto the bottom of the page
+    const container = opts?.container ?? document.body;
+
+    container.appendChild(page);
+    if (!opts.page) {
+        // HTML/CSS pushed Margins out from the page, we want the other way around
+        adjustMargins(page, opts);
+    }
     // page needs to be in the document before it will get sized.
     const {innerHeight, innerWidth, rowHeight} = getDimensions(page, opts);
+    page.removeChild(content)
+    if (innerHeight === 0) {
+        console.error("Unable to calculate height of container");
+        return {pages: [] as HTMLElement[]} as Flow;
+    }
 
     const content_children: HTMLElement[] = [...content.children].reverse();
 
@@ -276,22 +245,20 @@ export const pageFlow = (content: HTMLElement | undefined, options: Partial<Page
         $logger("pageflow", `Split Content Height: ${partial_height}, ${i - 1} words`);
         page.removeChild(partial_content);
 
-        // i==0, one word pushed us over.
-        const rest = (i == 0) ? words.join(" ") : words.splice(i - 1).join(" ");
+        const rest = (i == 0) ? words.join(" ") : words.splice(i).join(" ");
         const first = (i == 0) ? null : words.join(" ");
 
         return {first, rest}
     }
 
     function breakNodeOnWords(inner_content: HTMLElement) {
-        //container.removeChild(inner_content);
         const words = extractWords(inner_content);
         const {first, rest} = splitTextIntoRemainingSpace(words, inner_content);
 
         if (first) {
             const partial_content = cloneElement(inner_content);
-            partial_content.style.paddingBottom = '0';
-            partial_content.style.marginBottom = '0';
+            partial_content.style.paddingTop = '0';
+            partial_content.style.marginTop = '0';
             partial_content.innerText = first;
             page.appendChild(partial_content);
 
@@ -302,6 +269,8 @@ export const pageFlow = (content: HTMLElement | undefined, options: Partial<Page
 
         if (rest.length > 0) {
             const nextContent = cloneElement(inner_content);
+            nextContent.style.marginTop = '0';
+            nextContent.style.paddingTop = '0';
             nextContent.innerText = rest;
             content_children.push(nextContent);
             $logger("pageflow", `Pushed remaining content to next page.`);
@@ -324,6 +293,7 @@ export const pageFlow = (content: HTMLElement | undefined, options: Partial<Page
         newNode.innerText = content.innerText;
         return newNode;
     }
+
     let used_height = 0;
     let done = content_children.length === 0;
     const pages: HTMLElement[] = [];
@@ -335,9 +305,8 @@ export const pageFlow = (content: HTMLElement | undefined, options: Partial<Page
             continue;
         }
 
-        contentChild.style.letterSpacing = "unset";
-        const inner_content = opts.contentTemplate
-            ? cloneTemplate(opts.contentTemplate, contentChild)
+        const inner_content = opts.content
+            ? cloneTemplate(opts.content, contentChild)
             : cloneElement(contentChild);
 
         // first, see if the whole node fits.
@@ -364,10 +333,32 @@ export const pageFlow = (content: HTMLElement | undefined, options: Partial<Page
         }
     }
 
-    document.body.removeChild(page);
+    container.removeChild(page);
+    if (opts.container) {
+        container.style.display = "none";
+    }
     return {
         pages,
         innerHeight, innerWidth, rowHeight,
         ...opts
     };
+}
+
+
+export function defaultPageFromProps(opts: PageFlowProps) {
+    const page = document.createElement("div");
+    page.style.boxSizing = "content-box";
+    page.style.height = opts.height;
+    page.style.minHeight = opts.height;
+    page.style.maxHeight = opts.height;
+    page.style.width = opts.width;
+    page.style.minWidth = opts.width;
+    page.style.maxWidth = opts.width;
+    page.style.padding = opts.margin;
+    page.style.fontSize = opts.fontSize;
+    page.style.lineHeight = String(opts.lineHeight);
+    page.style.background = "white";
+    page.style.color = "black";
+    page.style.margin = "1rem"
+    return page;
 }

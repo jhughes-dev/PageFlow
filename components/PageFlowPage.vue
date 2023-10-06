@@ -7,7 +7,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <div v-bind="$attrs" ref="mountPoint" />
+    <div v-bind="$attrs" ref="mountPoint" id="pfp"/>
 </template>
 
 <style></style>

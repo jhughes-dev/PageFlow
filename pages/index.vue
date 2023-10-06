@@ -45,7 +45,13 @@ const content = [
                 <p>{{ content }}</p>
             </div>
             <p>... is split into these 3in by 2in pages.</p>
-            <PageFlow height="3in" width="2in" margin="1rem" class="flex-row">
+            <PageFlow
+                height="3in"
+                width="2in"
+                margin="1rem"
+                font-size="12pt"
+                class="flex-row"
+            >
                 <p>{{ content }}</p>
                 <template #page_template>
                     <div class="page_template"></div>
@@ -104,5 +110,11 @@ const content = [
     background-color: white;
     color: black;
     margin: 1rem;
+    box-sizing: border-box;
+    padding: 1rem;
+    max-width: 2in;
+    min-width: 2in;
+    max-height: 3in;
+    min-height: 3in;
 }
 </style>
