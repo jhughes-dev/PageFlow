@@ -3,6 +3,10 @@ import {type PageFlowProps, type Flow} from "@/composables/usePageFlow";
 import useHTMLRef from "~/composables/useHTMLRef";
 
 const uuid = useUUID();
+const page_id = computed(() => `pf-page-template-${uuid.value}`);
+const content_id = (idx: number) => `pf-page-${idx}-${uuid.value}`;
+const slots_id = computed(() => `pf-slots-${uuid.value}`);
+
 const {$logger} = useNuxtApp();
 const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
     ...DefaultOptions,
@@ -11,16 +15,12 @@ const props = withDefaults(defineProps<Partial<PageFlowProps>>(), {
 let containerDefaultDisplay = "";
 
 const slots = useHTMLRef();
-const content = useHTMLRef();
-const pageTemplate = useHTMLRef();
-const contentTemplate = useHTMLRef();
 
-const pageDefault = computed(() => defaultPageFromProps(props));
 const container = computed(() => {
-    const instance = getCurrentInstance();
-    if (instance) {
-        return instance.subTree.children[1].el;
+    if (process.browser) {
+        return document.getElementById(page_id.value);
     }
+    return undefined;
 });
 
 const flow = computed<Flow>(() => {
@@ -28,9 +28,9 @@ const flow = computed<Flow>(() => {
         container.value.style.display = containerDefaultDisplay;
         return pageFlow(content.value, {
             ...props,
-            page: pageTemplate.value ?? pageDefault.value,
+            page: page_template.value,
             container: container.value,
-            content: contentTemplate.value,
+            content: content_template.value,
         });
     }
     return {} as Flow;
@@ -39,57 +39,77 @@ const flow = computed<Flow>(() => {
 const scaledMargin = computed(() => flow.value?.margin ?? props.margin);
 const scaledHeight = computed(() => flow.value?.height ?? props.height);
 const scaledWidth = computed(() => flow.value.width ?? props.width);
+
 const interiorGap = computed(
     () => `${0.5 * (flow.value?.scale ?? props.scale)}in`
 );
 
 const lineHeight = computed(() => flow.value?.lineHeight ?? props?.lineHeight);
 
-const default_style = computed(() => (pageTemplate.value ? "" : "page"));
-onMounted(() => {
+const default_style = computed(() =>
+    used_slots.value.has("page_template") ? "page" : ""
+);
+
+const used_slots = computed(() => {
     const instance = getCurrentInstance();
-    const children = [...(slots?.value?.children ?? [])];
-    const used_slots = new Set(Object.keys(instance?.slots ?? {}));
-    containerDefaultDisplay = container.value?.style?.display ?? "unset";
-    if (used_slots.has("page_template")) {
-        pageTemplate.value = children[0];
-        slots?.value?.removeChild(children[0]);
-        children.splice(0, 1);
-    }
-
-    if (used_slots.has("content_template")) {
-        contentTemplate.value = children[0];
-        slots?.value?.removeChild(children[0]);
-        children.splice(0, 1);
-    } else {
-        contentTemplate.value = document.createElement("p");
-    }
-
-    content.value = slots.value;
+    return new Set(Object.keys(instance?.slots ?? {}));
 });
 
-onUpdated(() =>
-    flow?.value?.pages.forEach((page, pidx) =>
+const getSlots = () => {
+    if (process.browser) {
+        const parent = document.getElementById(slots_id.value);
+        return parent?.children ?? undefined;
+    }
+    return undefined;
+};
+
+const content = computed(() => {
+    const slots = getSlots();
+    if (slots && used_slots.value.has("default")) {
+        return slots.item(slots.length - 1) as HTMLElement;
+    }
+    return undefined;
+});
+
+const page_template = computed(() => {
+    const slots = getSlots();
+    if (slots) {
+        return slots?.namedItem("page_template") as HTMLElement;
+    }
+    return defaultPageFromProps(props);
+});
+
+const content_template = computed(() => {
+    const slots = getSlots();
+    return slots?.namedItem("content_template") as HTMLElement;
+});
+
+const update = () => {
+    containerDefaultDisplay = container.value?.style?.display ?? "unset";
+    const pages = flow?.value?.pages ?? [];
+    pages.forEach((page, pidx) =>
         $logger("site", `Page ${pidx} content: "${page.innerText}"`)
-    )
-);
+    );
+};
+
+onMounted(update);
 </script>
 
 <template>
     <div v-bind="$attrs">
         <PageFlowPage
             v-for="(page, idx) in flow.pages"
-            :id="`page-${idx}:${uuid}`"
+            :id="content_id(idx)"
             :key="idx"
             :content="page"
-            v-class="default_style"
+            :class="default_style"
         />
     </div>
-    <DefaultPage v-bind="props" class="inner-container" />
-    <div ref="slots" class="invisible">
+    <DefaultContainer :id="page_id" v-bind="props" class="inner-container" />
+    <div ref="slots" :id="slots_id" class="invisible">
         <slot name="page_template" />
         <slot name="content_template" />
-        <slot />
+        <div><slot /></div>
     </div>
 </template>
 
