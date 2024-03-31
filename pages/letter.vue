@@ -14,14 +14,14 @@ const scale = ref(1);
                     :max="32"
                     step="0.5"
                     v-model="size"
-                ></v-slider>
+                />
                 <p class="slider-label">Line Height: x {{ lineHeight }}</p>
                 <v-slider
                     :min="1"
                     :max="5"
                     step="0.1"
                     v-model="lineHeight"
-                ></v-slider>
+                />
                 <p class="slider-label">
                     Scale: {{ Math.floor(100 * scale) }}%
                 </p>
@@ -30,7 +30,7 @@ const scale = ref(1);
                     :max="5"
                     :step="0.01"
                     v-model="scale"
-                ></v-slider>
+                />
             </v-container>
         </v-navigation-drawer>
         <div class="reference_page">
